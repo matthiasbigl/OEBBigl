@@ -45,6 +45,7 @@
 	"dependencies": {
 		"@neondatabase/serverless": "^0.10.4",
 		"@types/hafas-client": "^6.3.0",
+		"gsap": "^3.13.0",
 		"hafas-client": "^6.3.5"
 	},
 	"pnpm": {

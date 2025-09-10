@@ -1,8 +1,13 @@
 <script lang="ts">
 	import type { Departure } from '$lib/server/hafas';
+	import { onMount } from 'svelte';
+	import { gsap } from 'gsap';
+	import { browser } from '$app/environment';
 	
 	export let departure: Departure;
 
+	let cardRef: HTMLElement;
+	
 	const formatTime = (dateString: string | null | undefined): string => {
 		if (!dateString) return 'N/A';
 		return new Date(dateString).toLocaleTimeString('de-DE', {
@@ -12,59 +17,130 @@
 	};
 
 	const getDelayColor = (delay: number | null | undefined): string => {
-		if (!delay || delay === 0) return 'text-cyan-400';
-		if (delay <= 300) return 'text-yellow-400'; // <= 5 min
+		if (!delay || delay === 0) return 'text-green-400';
+		if (delay <= 300) return 'text-orange-400'; // <= 5 min
 		return 'text-red-400'; // > 5 min
 	};
 
 	const formatDelay = (delay: number | null | undefined): string => {
 		if (!delay || delay === 0) return '';
 		const minutes = Math.floor(delay / 60);
-		return `+${minutes}min`;
+		return `+${minutes}`;
 	};
+	
+	const getStatusIcon = (delay: number | null | undefined): string => {
+		if (!delay || delay === 0) return '●';
+		if (delay <= 300) return '◐';
+		return '◯';
+	};
+	
+	onMount(() => {
+		// Only run animations in browser
+		if (!browser || !cardRef) return;
+		
+		// Add hover animations
+		const handleMouseEnter = () => {
+			if (browser && cardRef) {
+				gsap.to(cardRef, {
+					scale: 1.02,
+					y: -2,
+					duration: 0.3,
+					ease: "power2.out"
+				});
+			}
+		};
+		
+		const handleMouseLeave = () => {
+			if (browser && cardRef) {
+				gsap.to(cardRef, {
+					scale: 1,
+					y: 0,
+					duration: 0.3,
+					ease: "power2.out"
+				});
+			}
+		};
+		
+		cardRef.addEventListener('mouseenter', handleMouseEnter);
+		cardRef.addEventListener('mouseleave', handleMouseLeave);
+		
+		return () => {
+			if (cardRef) {
+				cardRef.removeEventListener('mouseenter', handleMouseEnter);
+				cardRef.removeEventListener('mouseleave', handleMouseLeave);
+			}
+		};
+	});
 </script>
 
-<div class="bg-slate-800/40 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-6 hover:border-cyan-400/50 hover:shadow-[0_0_25px_rgba(6,182,212,0.2)] transition-all duration-300 group">
-	<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-		<!-- Train Info -->
-		<div class="flex items-center gap-4">
-			<div class="w-16 h-16 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-lg flex items-center justify-center font-bold text-white text-lg">
-				{departure.line?.name || departure.line?.id || '?'}
+
+<div bind:this={cardRef} class="border border-gray-700 bg-black/40 backdrop-blur-sm hover:border-gray-500 transition-all duration-300 cursor-pointer group">
+	<!-- Header with Terminal Style -->
+	<div class="border-b border-gray-700 px-4 py-2 bg-gray-900/20">
+		<div class="flex items-center justify-between">
+			<!-- Transport Line -->
+			<div class="flex items-center space-x-3">
+				<div class="w-8 h-8 bg-gray-800 border border-gray-600 flex items-center justify-center text-xs font-bold text-white group-hover:bg-gray-700 transition-colors duration-200 text-center">
+					{departure.line?.name || departure.line?.id || '?'}
+				</div>
+				<div class="text-xs text-gray-400 font-mono tracking-wider">
+					{departure.line?.product?.toUpperCase() || 'TRANSPORT'}
+				</div>
 			</div>
-			<div>
-				<h3 class="text-xl font-bold text-cyan-100 font-mono">
-					{departure.direction || 'Unknown Direction'}
-				</h3>
-				<p class="text-cyan-300/70 font-mono text-sm">
-					{departure.line?.product || 'Train'} • Platform {departure.platform || 'TBA'}
-					{#if departure.line?.trainNumber}
-						• Train #{departure.line.trainNumber}
-					{/if}
-				</p>
+			
+			<!-- Status Indicator -->
+			<div class="flex items-center space-x-2 text-xs">
+				<div class="w-2 h-2 {getDelayColor(departure.delay)} {getStatusIcon(departure.delay)}"></div>
+				<span class="text-gray-400 font-mono">
+					{departure.delay ? 'DELAYED' : 'ON.TIME'}
+				</span>
 			</div>
 		</div>
-
-		<!-- Time Info -->
-		<div class="text-right">
-			<div class="text-3xl font-bold font-mono {getDelayColor(departure.delay)}">
-				{formatTime(departure.when)}
-			</div>
-			{#if departure.delay}
-				<div class="text-lg font-bold {getDelayColor(departure.delay)} font-mono">
-					{formatDelay(departure.delay)}
+	</div>
+	
+	<!-- Main Content -->
+	<div class="p-4">
+		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+			<!-- Destination & Platform -->
+			<div class="flex-1 min-w-0">
+				<h3 class="text-lg font-bold text-white font-mono truncate group-hover:text-gray-200 transition-colors duration-200">
+					{departure.direction || 'UNKNOWN DESTINATION'}
+				</h3>
+				<div class="flex items-center space-x-4 mt-1 text-xs text-gray-400">
+					<span class="font-mono">PLATFORM: {departure.platform || 'TBA'}</span>
+					{#if departure.line?.trainNumber}
+						<span class="text-gray-500">|</span>
+						<span class="font-mono">#{departure.line.trainNumber}</span>
+					{/if}
 				</div>
-			{/if}
+			</div>
+
+			<!-- Time Display -->
+			<div class="text-right">
+				<div class="text-2xl sm:text-3xl font-bold font-mono {getDelayColor(departure.delay)} group-hover:scale-105 transition-transform duration-200">
+					{formatTime(departure.when)}
+				</div>
+				{#if departure.delay}
+					<div class="text-sm font-bold {getDelayColor(departure.delay)} font-mono mt-1">
+						{formatDelay(departure.delay)}min
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 
-	<!-- Additional Info -->
+	<!-- Remarks/Alerts -->
 	{#if departure.remarks && departure.remarks.length > 0}
-		<div class="mt-4 pt-4 border-t border-cyan-500/20">
-			<div class="flex flex-wrap gap-2">
+		<div class="border-t border-gray-700 px-4 py-3 bg-gray-900/10">
+			<div class="flex items-center space-x-2 mb-2">
+				<div class="w-1 h-1 bg-orange-400 animate-pulse"></div>
+				<span class="text-xs text-gray-400 font-mono tracking-wider">ALERTS</span>
+			</div>
+			<div class="space-y-1">
 				{#each departure.remarks as remark}
-					<span class="px-2 py-1 bg-yellow-600/20 border border-yellow-500/30 rounded text-yellow-300 text-xs font-mono">
+					<div class="text-xs text-orange-300 font-mono bg-orange-900/20 border-l-2 border-orange-600 pl-3 py-1">
 						{remark.text}
-					</span>
+					</div>
 				{/each}
 			</div>
 		</div>

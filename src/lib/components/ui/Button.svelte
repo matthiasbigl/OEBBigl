@@ -1,31 +1,99 @@
+
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { gsap } from 'gsap';
+	import { browser } from '$app/environment';
+	
 	export let variant: 'primary' | 'secondary' | 'danger' | 'filter' | 'filter-active' = 'primary';
 	export let size: 'sm' | 'md' | 'lg' = 'md';
 	export let onClick: (() => void) | undefined = undefined;
 	export let disabled = false;
 	export let title = '';
 
+	let buttonRef: HTMLButtonElement;
+
 	const variants = {
-		primary: 'bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]',
-		secondary: 'bg-slate-800/50 border-2 border-cyan-500/30 text-cyan-100 hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]',
-		danger: 'bg-red-600/50 hover:bg-red-500/70 text-white border border-red-400/30 hover:border-red-400',
-		filter: 'bg-gradient-to-r from-purple-600/50 to-pink-600/50 text-white border border-purple-400/30 hover:border-cyan-400/50 hover:shadow-[0_0_10px_rgba(6,182,212,0.3)]',
-		'filter-active': 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]'
+		primary: 'bg-gray-900 border border-gray-600 text-gray-100 hover:bg-gray-800 hover:border-gray-400 hover:text-white',
+		secondary: 'bg-black/50 border border-gray-700 text-gray-300 hover:border-gray-500 hover:text-gray-100',
+		danger: 'bg-red-900/50 border border-red-600 text-red-200 hover:bg-red-800/70 hover:border-red-400',
+		filter: 'bg-black/30 border border-gray-600 text-gray-400 hover:border-gray-400 hover:text-gray-200',
+		'filter-active': 'bg-gray-800 border border-gray-400 text-white'
 	};
 
 	const sizes = {
 		sm: 'px-3 py-1 text-xs',
-		md: 'px-6 py-2 text-sm',
-		lg: 'px-8 py-4 text-lg'
+		md: 'px-4 py-2 text-sm',
+		lg: 'px-6 py-3 text-base'
 	};
 
-	$: baseClasses = 'font-bold rounded-lg transition-all duration-300 font-mono cursor-pointer hover:cursor-pointer';
+	$: baseClasses = 'font-bold transition-all duration-200 font-mono cursor-pointer tracking-wider';
 	$: variantClasses = variants[variant];
 	$: sizeClasses = sizes[size];
 	$: disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : '';
+	
+	onMount(() => {
+		// Only run animations in browser
+		if (!browser || !buttonRef) return;
+		
+		const handleMouseEnter = () => {
+			if (!disabled && browser && buttonRef) {
+				gsap.to(buttonRef, {
+					scale: 1.05,
+					duration: 0.2,
+					ease: "power2.out"
+				});
+			}
+		};
+		
+		const handleMouseLeave = () => {
+			if (browser && buttonRef) {
+				gsap.to(buttonRef, {
+					scale: 1,
+					duration: 0.2,
+					ease: "power2.out"
+				});
+			}
+		};
+		
+		const handleMouseDown = () => {
+			if (!disabled && browser && buttonRef) {
+				gsap.to(buttonRef, {
+					scale: 0.95,
+					duration: 0.1,
+					ease: "power2.out"
+				});
+			}
+		};
+		
+		const handleMouseUp = () => {
+			if (!disabled && browser && buttonRef) {
+				gsap.to(buttonRef, {
+					scale: 1.05,
+					duration: 0.1,
+					ease: "power2.out"
+				});
+			}
+		};
+		
+		buttonRef.addEventListener('mouseenter', handleMouseEnter);
+		buttonRef.addEventListener('mouseleave', handleMouseLeave);
+		buttonRef.addEventListener('mousedown', handleMouseDown);
+		buttonRef.addEventListener('mouseup', handleMouseUp);
+		
+		return () => {
+			if (buttonRef) {
+				buttonRef.removeEventListener('mouseenter', handleMouseEnter);
+				buttonRef.removeEventListener('mouseleave', handleMouseLeave);
+				buttonRef.removeEventListener('mousedown', handleMouseDown);
+				buttonRef.removeEventListener('mouseup', handleMouseUp);
+			}
+		};
+	});
 </script>
 
+
 <button
+	bind:this={buttonRef}
 	class="{baseClasses} {variantClasses} {sizeClasses} {disabledClasses}"
 	on:click={onClick}
 	{disabled}

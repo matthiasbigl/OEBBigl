@@ -5,44 +5,45 @@ export const GET: RequestHandler = async () => {
 	const apiDocs = {
 		title: "🚄 Cyber Bahnhof API",
 		description: "RESTful API for Austrian train departure data using ÖBB HAFAS",
-		version: "1.0.0",
+		version: "2.0.0",
 		baseUrl: "/api",
 		endpoints: {
 			"/api/departures": {
 				method: "GET",
-				description: "Get train departures for a station",
+				description: "Unified endpoint for train departures with comprehensive filtering, pagination, and formatting options",
 				parameters: {
 					station: {
 						type: "string",
 						required: true,
 						description: "Station name (e.g., 'Wien Hauptbahnhof', 'Salzburg Hbf')"
-					}
-				},
-				examples: [
-					"/api/departures?station=Wien Hauptbahnhof",
-					"/api/departures?station=Salzburg Hbf",
-					"/api/departures?station=Innsbruck Hbf"
-				],
-				response: {
-					success: "boolean",
-					error: "string | null", 
-					data: {
-						station: "string",
-						location: "object",
-						departures: "array",
-						timestamp: "string (ISO)",
-						count: "number"
-					}
-				}
-			},
-			"/api/departures/advanced": {
-				method: "GET", 
-				description: "Get train departures with filtering and format options",
-				parameters: {
-					station: {
-						type: "string",
-						required: true,
-						description: "Station name"
+					},
+					when: {
+						type: "string (ISO 8601)",
+						required: false,
+						description: "Start time for departures (default: now)"
+					},
+					duration: {
+						type: "number",
+						required: false,
+						description: "Time window in minutes (default: 60)"
+					},
+					results: {
+						type: "number", 
+						required: false,
+						description: "Maximum number of results (legacy parameter, use pageSize instead)"
+					},
+					page: {
+						type: "number",
+						required: false,
+						default: 1,
+						description: "Page number for pagination (starts at 1)"
+					},
+					pageSize: {
+						type: "number",
+						required: false,
+						default: 15,
+						max: 100,
+						description: "Number of results per page (max 100)"
 					},
 					filter: {
 						type: "string",
@@ -52,31 +53,61 @@ export const GET: RequestHandler = async () => {
 					format: {
 						type: "string",
 						required: false,
-						default: "json",
-						options: ["json", "minimal"],
-						description: "Response format - 'minimal' for lightweight responses"
+						default: "full",
+						options: ["full", "minimal"],
+						description: "Response format - 'minimal' for lightweight responses, 'full' for complete data"
 					}
 				},
 				examples: [
-					"/api/departures/advanced?station=Wien Hauptbahnhof",
-					"/api/departures/advanced?station=Wien Hauptbahnhof&filter=regional,suburban",
-					"/api/departures/advanced?station=Wien Hauptbahnhof&format=minimal",
-					"/api/departures/advanced?station=Salzburg Hbf&filter=nationalExpress,national&format=minimal"
+					"/api/departures?station=Wien Hauptbahnhof",
+					"/api/departures?station=Wien Hauptbahnhof&when=2025-09-10T14:00:00Z&duration=120",
+					"/api/departures?station=Wien Hauptbahnhof&page=2&pageSize=10",
+					"/api/departures?station=Wien Hauptbahnhof&filter=regional,suburban&format=minimal",
+					"/api/departures?station=Salzburg Hbf&page=1&pageSize=20&filter=nationalExpress,national&format=full&when=2025-09-10T14:00:00Z"
 				],
 				response: {
-					success: "boolean",
-					error: "string | null",
-					data: {
-						station: "string", 
-						location: "object",
-						departures: "array",
-						metadata: {
-							timestamp: "string (ISO)",
-							totalCount: "number",
-							filteredCount: "number", 
-							appliedFilters: "array",
-							availableProducts: "array"
+					full_format: {
+						success: "boolean",
+						error: "string | null", 
+						data: {
+							station: "string",
+							location: "object",
+							departures: "array",
+							pagination: {
+								hasMore: "boolean",
+								currentWhen: "string (ISO)",
+								duration: "number",
+								totalResults: "number",
+								currentPage: "number",
+								pageSize: "number",
+								hasNextPage: "boolean",
+								hasPrevPage: "boolean",
+								nextPageUrl: "string | null",
+								prevPageUrl: "string | null"
+							},
+							metadata: {
+								timestamp: "string (ISO)",
+								totalCount: "number",
+								filteredCount: "number",
+								appliedFilters: "array",
+								availableProducts: "array",
+								format: "string"
+							}
 						}
+					},
+					minimal_format: {
+						station: "string",
+						departures: "array (simplified departure objects)",
+						count: "number",
+						pagination: {
+							currentPage: "number",
+							pageSize: "number",
+							hasNextPage: "boolean",
+							hasPrevPage: "boolean",
+							nextPageUrl: "string | null",
+							prevPageUrl: "string | null"
+						},
+						timestamp: "string (ISO)"
 					}
 				}
 			}

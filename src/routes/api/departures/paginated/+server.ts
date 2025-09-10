@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import type { RequestHandler } from '@sveltejs/kit';
 
 export const GET: RequestHandler = async ({ url }) => {
 	// This endpoint is deprecated - redirect to the unified departures endpoint
@@ -14,16 +14,15 @@ export const GET: RequestHandler = async ({ url }) => {
 			success: false,
 			data: null,
 			deprecation: {
-				message: 'The /api/departures/advanced endpoint has been deprecated in favor of the unified /api/departures endpoint',
+				message: 'The /api/departures/paginated endpoint has been deprecated in favor of the unified /api/departures endpoint',
 				newEndpoint: '/api/departures',
 				redirectUrl: redirectUrl,
 				migration: {
-					description: 'All advanced functionality is now built into the main /api/departures endpoint',
+					description: 'All pagination functionality is now built into the main /api/departures endpoint',
 					changes: [
-						'Use /api/departures instead of /api/departures/advanced',
+						'Use /api/departures instead of /api/departures/paginated',
 						'All existing parameters work the same way',
-						'Filtering and format options are fully supported',
-						'Response format is more comprehensive and consistent'
+						'Response format is more comprehensive'
 					]
 				}
 			}

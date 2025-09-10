@@ -1,7 +1,9 @@
 import type { Departure } from '$lib/server/hafas';
 
 /**
- * Filter departures based on active transport type filters
+ * Filter departures based on active transport type filters (client-side)
+ * This is used for UI filtering on already fetched departures.
+ * Works in combination with server-side filtering for maximum flexibility.
  */
 export const filterDepartures = (
 	departures: Departure[], 

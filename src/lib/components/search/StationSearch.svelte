@@ -1,31 +1,91 @@
 <script lang="ts">
 	import Button from '../ui/Button.svelte';
+	import { onMount } from 'svelte';
+	import { gsap } from 'gsap';
+	import { browser } from '$app/environment';
 	
 	export let stationName: string;
 	export let onSearch: (station: string) => void;
 
 	let inputValue = stationName;
+	let inputRef: HTMLInputElement;
+	let formRef: HTMLFormElement;
 
 	const handleSubmit = () => {
 		onSearch(inputValue);
 	};
+	
+	onMount(() => {
+		// Only run animations in browser
+		if (!browser || !inputRef) return;
+		
+		// Add focus animations
+		const handleFocus = () => {
+			if (browser && inputRef) {
+				gsap.to(inputRef, {
+					scale: 1.02,
+					duration: 0.3,
+					ease: "power2.out"
+				});
+			}
+		};
+		
+		const handleBlur = () => {
+			if (browser && inputRef) {
+				gsap.to(inputRef, {
+					scale: 1,
+					duration: 0.3,
+					ease: "power2.out"
+				});
+			}
+		};
+		
+		inputRef.addEventListener('focus', handleFocus);
+		inputRef.addEventListener('blur', handleBlur);
+		
+		return () => {
+			if (inputRef) {
+				inputRef.removeEventListener('focus', handleFocus);
+				inputRef.removeEventListener('blur', handleBlur);
+			}
+		};
+	});
 </script>
 
-<div class="max-w-2xl mx-auto mb-12">
-	<form on:submit|preventDefault={handleSubmit} class="relative">
-		<div class="relative group">
+
+<div class="w-full">
+	<form bind:this={formRef} on:submit|preventDefault={handleSubmit} class="space-y-4">
+		<!-- Input Field with Terminal Styling -->
+		<div class="relative">
+			<!-- Terminal Prompt -->
+			<div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-mono text-sm pointer-events-none">
+				$&gt;
+			</div>
+			
 			<input 
+				bind:this={inputRef}
 				type="text" 
 				bind:value={inputValue}
-				placeholder="Bahnhof eingeben..."
-				class="w-full px-6 py-4 bg-slate-800/50 border-2 border-cyan-500/30 rounded-lg text-cyan-100 placeholder-cyan-300/50 focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all duration-300 backdrop-blur-sm font-mono text-lg"
+				placeholder="ENTER STATION NAME..."
+				class="w-full pl-12 pr-4 py-3 bg-black/60 border border-gray-600 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-all duration-200 font-mono text-sm sm:text-base"
 			>
-			<div class="absolute inset-0 rounded-lg bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+			
+			<!-- Input Border Effect -->
+			<div class="absolute inset-0 border border-gray-600 pointer-events-none transition-opacity duration-200 opacity-0 group-hover:opacity-100"></div>
 		</div>
-		<div class="mt-4 flex justify-center">
-			<Button variant="primary" size="lg" onClick={handleSubmit}>
-				&gt;&gt; SCAN DEPARTURES &lt;&lt;
+		
+		<!-- Submit Button -->
+		<div class="flex justify-center">
+			<Button variant="primary" onClick={handleSubmit}>
+				EXECUTE.SEARCH
 			</Button>
 		</div>
 	</form>
+	
+	<!-- Help Text -->
+	<div class="mt-3 text-center">
+		<span class="text-xs text-gray-500 font-mono">
+			// Type station name and press EXECUTE.SEARCH
+		</span>
+	</div>
 </div>

@@ -4,7 +4,17 @@ import { getTrainDepartures } from '$lib/server/hafas';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const stopName = url.searchParams.get('station') || 'Wien Hbf';
-	return await getTrainDepartures(stopName);
+	const when = url.searchParams.get('when');
+	const duration = url.searchParams.get('duration');
+	const results = url.searchParams.get('results');
+	
+	// Build options object
+	const options: any = {};
+	if (when) options.when = when;
+	if (duration) options.duration = parseInt(duration);
+	if (results) options.results = parseInt(results);
+	
+	return await getTrainDepartures(stopName, options);
 };
 
 export const actions: Actions = {
