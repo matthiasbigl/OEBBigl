@@ -89,11 +89,4 @@
 			</div>
 		{/if}
 	</div>
-	
-	<!-- Filter Help Text -->
-	<div class="mt-3 text-center">
-		<span class="text-xs text-gray-500 font-mono">
-			// Click transport types to filter departures
-		</span>
-	</div>
 </div>

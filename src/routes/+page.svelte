@@ -10,9 +10,9 @@
 	import ErrorMessage from '$lib/components/ui/ErrorMessage.svelte';
 	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
 	import { 
-		isSearching, searchActions,
+		isSearching, searchActions, currentStation, isDataLoading,
 		isRefreshing, lastUpdate, refreshActions,
-		activeFilters, filteredDepartures, filterActions
+		activeFilters, activePlatformFilters, filteredDepartures, filterActions
 	} from '$lib/stores';
 	
 	export let data: PageData;
@@ -35,6 +35,21 @@
 			filterActions.setDepartures(data.departures);
 		}
 		
+		// Handle initial station setup and localStorage
+		if (browser) {
+			// If no station in URL but we have a stored station, redirect
+			if (!data.station || data.station === '') {
+				const lastVisited = searchActions.getLastVisitedStation();
+				if (lastVisited) {
+					searchActions.handleStationSearch(lastVisited);
+					return; // Exit early since we're redirecting
+				}
+			} else {
+				// Update stored station with current one
+				searchActions.setCurrentStation(data.station);
+			}
+		}
+		
 		// Start auto-refresh (only in browser)
 		if (browser) {
 			autoRefreshInterval = refreshActions.startAutoRefresh(60);
@@ -53,6 +68,22 @@
 	// Update departures when data changes
 	$: if (data.departures) {
 		filterActions.setDepartures(data.departures);
+		
+		// Clear filters when switching to a new station
+		if (data.station !== $currentStation) {
+			filterActions.handleClearFilters();
+			// Update current station and store in localStorage
+			if (browser && data.station) {
+				searchActions.setCurrentStation(data.station);
+			}
+		}
+		
+		// Clear data loading state when new data arrives
+		if ($isDataLoading) {
+			setTimeout(() => {
+				refreshActions.clearDataLoading();
+			}, 200);
+		}
 	}
 	
 	
@@ -264,8 +295,7 @@
 		<div bind:this={searchContainer} class="px-4 py-4 sm:px-6 lg:px-8">
 			<div class="max-w-4xl mx-auto">
 				<CollapsibleSearchSection
-					stationName={data.station} 
-					onSearch={searchActions.handleStationSearch} 
+					stationName={data.station}
 				/>
 			</div>
 		</div>
@@ -301,31 +331,42 @@
 					<div class="border-b border-gray-700 px-4 py-3 bg-gray-900/30">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center space-x-3">
-								<div class="w-2 h-2 bg-blue-400 pulse-element"></div>
+								<div class="w-2 h-2 bg-blue-400 pulse-element {$isDataLoading ? 'animate-pulse' : ''}"></div>
 								<span class="text-xs sm:text-sm text-gray-400 tracking-wider font-mono">
 									DEPARTURE.MATRIX
 								</span>
-								{#if $filteredDepartures.length !== (data.departures?.length || 0)}
+								{#if $isDataLoading}
+									<div class="h-4 w-px bg-gray-600"></div>
+									<span class="text-xs text-cyan-400 font-mono animate-pulse">
+										UPDATING...
+									</span>
+								{:else if $filteredDepartures.length !== (data.departures?.length || 0)}
 									<div class="h-4 w-px bg-gray-600"></div>
 									<span class="text-xs text-gray-500 font-mono">
 										{$filteredDepartures.length}/{data.departures?.length || 0} FILTERED
 									</span>
 								{/if}
+								{#if $activeFilters.size > 0 || $activePlatformFilters.size > 0}
+									<div class="h-4 w-px bg-gray-600"></div>
+									<span class="text-xs text-blue-400 font-mono">
+										{$activeFilters.size + $activePlatformFilters.size} FILTER{$activeFilters.size + $activePlatformFilters.size !== 1 ? 'S' : ''} ACTIVE
+									</span>
+								{/if}
 							</div>
 							
-							{#if $activeFilters.size > 0}
+							{#if $activeFilters.size > 0 || $activePlatformFilters.size > 0}
 								<button
 									on:click={filterActions.handleClearFilters}
 									class="text-xs text-gray-400 hover:text-gray-200 transition-colors duration-200 font-mono"
 								>
-									CLEAR.FILTERS
+									CLEAR.ALL.FILTERS
 								</button>
 							{/if}
 						</div>
 					</div>
 					
 					<!-- Departures List -->
-					<div class="p-4">
+					<div class="p-4 transition-opacity duration-300 {$isDataLoading ? 'opacity-50' : 'opacity-100'}">
 						<DeparturesList 
 							totalDepartures={data.departures?.length || 0}
 						/>
@@ -348,5 +389,5 @@
 		</div>
 	</div>
 {/if}
-<!-- Debug Store Viewer -->
+
 

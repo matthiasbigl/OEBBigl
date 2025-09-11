@@ -3,28 +3,61 @@ import type { Departure } from '$lib/server/hafas';
 
 // State
 export const activeFilters = writable<Set<string>>(new Set());
+export const activePlatformFilters = writable<Set<string>>(new Set());
 // Use a Map for departures for more efficient updates
 export const departures = writable<Map<string, Departure>>(new Map());
 
 // Derived store for filtered departures
 export const filteredDepartures = derived(
-	[departures, activeFilters],
-	([$departures, $activeFilters]) => {
+	[departures, activeFilters, activePlatformFilters],
+	([$departures, $activeFilters, $activePlatformFilters]) => {
 		const departureList = Array.from($departures.values());
 
-		// Always return all departures if no filters are active
-		if ($activeFilters.size === 0) {
-			return departureList;
+		// Filter by product type first
+		let filtered = departureList;
+		if ($activeFilters.size > 0) {
+			filtered = filtered.filter(departure => {
+				if (!departure.line?.product) {
+					return false;
+				}
+				
+				const productType = departure.line.product.toLowerCase();
+				return $activeFilters.has(productType);
+			});
 		}
 
-		// Filter departures based on active filters
-		return departureList.filter(departure => {
-			if (!departure.line?.product) {
-				return false;
+		// Then filter by platform
+		if ($activePlatformFilters.size > 0) {
+			filtered = filtered.filter(departure => {
+				if (!departure.platform) {
+					return false;
+				}
+				return $activePlatformFilters.has(departure.platform);
+			});
+		}
+
+		return filtered;
+	}
+);
+
+// Derived store for available platforms
+export const availablePlatforms = derived(
+	departures,
+	($departures) => {
+		const platforms = new Set<string>();
+		Array.from($departures.values()).forEach(departure => {
+			if (departure.platform && departure.platform !== 'TBA') {
+				platforms.add(departure.platform);
 			}
-			
-			const productType = departure.line.product.toLowerCase();
-			return $activeFilters.has(productType);
+		});
+		return Array.from(platforms).sort((a, b) => {
+			// Sort platforms numerically if they're numbers, otherwise alphabetically
+			const aNum = parseInt(a);
+			const bNum = parseInt(b);
+			if (!isNaN(aNum) && !isNaN(bNum)) {
+				return aNum - bNum;
+			}
+			return a.localeCompare(b);
 		});
 	}
 );
@@ -46,6 +79,23 @@ export const filterActions = {
 
 	handleClearFilters() {
 		activeFilters.set(new Set());
+		activePlatformFilters.set(new Set());
+	},
+
+	handleTogglePlatformFilter(platform: string) {
+		activePlatformFilters.update(filters => {
+			const newFilters = new Set(filters);
+			if (newFilters.has(platform)) {
+				newFilters.delete(platform);
+			} else {
+				newFilters.add(platform);
+			}
+			return newFilters;
+		});
+	},
+
+	handleClearPlatformFilters() {
+		activePlatformFilters.set(new Set());
 	},
 
 	setDepartures(newDepartures: Departure[]) {

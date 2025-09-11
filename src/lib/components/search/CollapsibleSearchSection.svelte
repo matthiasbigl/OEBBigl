@@ -5,7 +5,6 @@
 	import { browser } from '$app/environment';
 	
 	export let stationName: string;
-	export let onSearch: (station: string) => void;
 	export let isCollapsed: boolean = false;
 	
 	let containerRef: HTMLElement;
@@ -107,8 +106,7 @@
 	<div bind:this={contentRef} class="collapsible-content overflow-hidden {isCollapsed ? 'h-0 opacity-0' : 'h-auto opacity-100'}">
 		<div class="p-4">
 			<StationSearch 
-				{stationName} 
-				{onSearch} 
+				{stationName}
 			/>
 		</div>
 	</div>

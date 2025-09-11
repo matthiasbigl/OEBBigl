@@ -5,11 +5,11 @@
 	import { afterUpdate } from 'svelte';
 	import { gsap } from 'gsap';
 	import { browser } from '$app/environment';
-	import { activeFilters, filteredDepartures, filterActions } from '$lib/stores';
+	import { activeFilters, activePlatformFilters, filteredDepartures, filterActions } from '$lib/stores';
 	
 	export let totalDepartures: number;
 
-	$: hasFilters = $activeFilters.size > 0;
+	$: hasFilters = $activeFilters.size > 0 || $activePlatformFilters.size > 0;
 	$: isFiltered = hasFilters && $filteredDepartures.length !== totalDepartures;
 	
 	let departureCards: HTMLElement[] = [];

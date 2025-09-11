@@ -3,16 +3,25 @@
 	import { onMount } from 'svelte';
 	import { gsap } from 'gsap';
 	import { browser } from '$app/environment';
+	import { isSearching, currentStation, searchActions } from '$lib/stores/searchStore';
 	
 	export let stationName: string;
-	export let onSearch: (station: string) => void;
 
 	let inputValue = stationName;
 	let inputRef: HTMLInputElement;
 	let formRef: HTMLFormElement;
+	let lastStationName = stationName;
+
+	// Only update input value when the station name prop changes (not when user types)
+	$: if (stationName !== lastStationName) {
+		inputValue = stationName;
+		lastStationName = stationName;
+	}
 
 	const handleSubmit = () => {
-		onSearch(inputValue);
+		if (inputValue.trim()) {
+			searchActions.handleStationSearch(inputValue.trim());
+		}
 	};
 	
 	onMount(() => {
@@ -67,7 +76,8 @@
 				type="text" 
 				bind:value={inputValue}
 				placeholder="ENTER STATION NAME..."
-				class="w-full pl-12 pr-4 py-3 bg-black/60 border border-gray-600 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-all duration-200 font-mono text-sm sm:text-base"
+				disabled={$isSearching}
+				class="w-full pl-12 pr-4 py-3 bg-black/60 border border-gray-600 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-all duration-200 font-mono text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 			
 			<!-- Input Border Effect -->
@@ -76,16 +86,28 @@
 		
 		<!-- Submit Button -->
 		<div class="flex justify-center">
-			<Button variant="primary" onClick={handleSubmit}>
-				EXECUTE.SEARCH
+			<Button variant="primary" onClick={handleSubmit} disabled={$isSearching}>
+				{$isSearching ? 'SEARCHING...' : 'EXECUTE.SEARCH'}
 			</Button>
 		</div>
 	</form>
 	
 	<!-- Help Text -->
-	<div class="mt-3 text-center">
+	<div class="mt-3 text-center space-y-1">
 		<span class="text-xs text-gray-500 font-mono">
 			// Type station name and press EXECUTE.SEARCH
 		</span>
+		{#if browser && !inputValue && searchActions.getLastVisitedStation()}
+			<div class="text-xs text-blue-400 font-mono">
+				LAST: {searchActions.getLastVisitedStation()}
+			</div>
+			<button
+				on:click={() => searchActions.handleStationSearch(searchActions.getLastVisitedStation())}
+				class="text-xs text-cyan-400 hover:text-cyan-200 transition-colors duration-200 font-mono underline"
+				disabled={$isSearching}
+			>
+				RETURN.TO.LAST
+			</button>
+		{/if}
 	</div>
 </div>

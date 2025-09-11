@@ -4,6 +4,7 @@ import { browser } from '$app/environment';
 
 // State
 export const isRefreshing = writable(false);
+export const isDataLoading = writable(false);
 export const lastUpdate = writable(new Date());
 
 // Actions
@@ -14,6 +15,7 @@ export const refreshActions = {
 		
 		try {
 			isRefreshing.set(true);
+			isDataLoading.set(true);
 			
 			// Force refresh the page data
 			await invalidateAll();
@@ -22,6 +24,7 @@ export const refreshActions = {
 			console.error('Refresh error:', error);
 		} finally {
 			isRefreshing.set(false);
+			// Note: isDataLoading is cleared in the page component when data arrives
 		}
 	},
 
@@ -34,11 +37,13 @@ export const refreshActions = {
 		
 		return setInterval(async () => {
 			try {
+				isDataLoading.set(true);
 				await invalidateAll();
 				lastUpdate.set(new Date());
 			} catch (error) {
 				console.error('Auto refresh error:', error);
 			}
+			// Note: isDataLoading is cleared in the page component when data arrives
 		}, intervalSeconds * 1000);
 	},
 
@@ -46,5 +51,9 @@ export const refreshActions = {
 		if (intervalId && browser) {
 			clearInterval(intervalId);
 		}
+	},
+
+	clearDataLoading() {
+		isDataLoading.set(false);
 	}
 };
