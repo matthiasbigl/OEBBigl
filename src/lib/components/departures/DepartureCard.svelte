@@ -79,8 +79,8 @@
 	<div class="border-b border-gray-700 px-4 py-2 bg-gray-900/20">
 		<div class="flex items-center justify-between">
 			<!-- Transport Line -->
-			<div class="flex items-center space-x-3">
-				<div class="w-8 h-8 bg-gray-800 border border-gray-600 flex items-center justify-center text-xs font-bold text-white group-hover:bg-gray-700 transition-colors duration-200 text-center">
+			<div class="flex items-center space-x-5">
+				<div class="w-8 h-8 bg-gray-800 border border-gray-600 flex items-center justify-center text-xs font-bold text-white group-hover:bg-gray-700 transition-colors duration-200 text-center text-ellipsis overflow-hidden ">
 					{departure.line?.name || departure.line?.id || '?'}
 				</div>
 				<div class="text-xs text-gray-400 font-mono tracking-wider">

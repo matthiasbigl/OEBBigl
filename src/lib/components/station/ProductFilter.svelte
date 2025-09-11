@@ -3,33 +3,12 @@
 	import { onMount } from 'svelte';
 	import { gsap } from 'gsap';
 	import { browser } from '$app/environment';
+	import { activeFilters, filterActions } from '$lib/stores';
 	
 	export let products: Record<string, boolean>;
-	export let activeFilters: Set<string>;
-	export let onToggleFilter: (product: string) => void;
-	export let onClearFilters: () => void;
 
 	let filterContainer: HTMLElement;
 	let filterButtons: HTMLElement[] = [];
-
-	const productDisplayNames: Record<string, string> = {
-		'nationalExpress': 'ICE',
-		'national': 'IC', 
-		'interregional': 'IR',
-		'regional': 'REX',
-		'suburban': 'S-BAHN',
-		'bus': 'BUS',
-		'ferry': 'FERRY',
-		'subway': 'U-BAHN',
-		'tram': 'TRAM',
-		'onCall': 'ON-CALL'
-	};
-
-	const getProductDisplayName = (product: string): string => 
-		productDisplayNames[product] || product.toUpperCase();
-
-	$: availableProducts = Object.entries(products).filter(([, available]) => available);
-	$: hasActiveFilters = activeFilters.size > 0;
 	
 	onMount(() => {
 		// Only run animations in browser
@@ -48,6 +27,25 @@
 			}
 		);
 	});
+	
+	const productDisplayNames: Record<string, string> = {
+		'nationalExpress': 'ICE',
+		'national': 'IC', 
+		'interregional': 'IR',
+		'regional': 'REX',
+		'suburban': 'S-BAHN',
+		'bus': 'BUS',
+		'ferry': 'FERRY',
+		'subway': 'U-BAHN',
+		'tram': 'TRAM',
+		'onCall': 'ON-CALL'
+	};
+
+	const getProductDisplayName = (product: string): string => 
+		productDisplayNames[product] || product.toUpperCase();
+
+	$: availableProducts = Object.entries(products).filter(([, available]) => available);
+	$: hasActiveFilters = $activeFilters.size > 0;
 </script>
 
 
@@ -59,19 +57,19 @@
 		{#if hasActiveFilters}
 			<div class="h-3 w-px bg-gray-600"></div>
 			<span class="text-xs text-orange-400 font-mono">
-				{activeFilters.size} ACTIVE
+				{$activeFilters.size} ACTIVE
 			</span>
 		{/if}
 	</div>
 	
 	<!-- Filter Buttons Grid -->
 	<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-		{#each availableProducts as [product], i}
+		{#each availableProducts as [product], i (product)}
 			<div bind:this={filterButtons[i]}>
 				<Button
-					variant={activeFilters.has(product.toLowerCase()) ? 'filter-active' : 'filter'}
+					variant={$activeFilters.has(product.toLowerCase()) ? 'filter-active' : 'filter'}
 					size="sm"
-					onClick={() => onToggleFilter(product)}
+					onClick={() => filterActions.handleToggleFilter(product)}
 					title="Filter by {getProductDisplayName(product)}"
 				>
 					{getProductDisplayName(product)}
@@ -84,7 +82,7 @@
 				<Button
 					variant="danger"
 					size="sm"
-					onClick={onClearFilters}
+					onClick={filterActions.handleClearFilters}
 				>
 					RESET.ALL
 				</Button>

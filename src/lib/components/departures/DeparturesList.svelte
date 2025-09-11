@@ -2,30 +2,38 @@
 	import type { Departure } from '$lib/server/hafas';
 	import DepartureCard from './DepartureCard.svelte';
 	import Button from '../ui/Button.svelte';
-	import { onMount } from 'svelte';
+	import { afterUpdate } from 'svelte';
 	import { gsap } from 'gsap';
 	import { browser } from '$app/environment';
+	import { activeFilters, filteredDepartures, filterActions } from '$lib/stores';
 	
-	export let departures: Departure[];
 	export let totalDepartures: number;
-	export let activeFilters: Set<string>;
-	export let onClearFilters: () => void;
 
-	$: hasFilters = activeFilters.size > 0;
-	$: isFiltered = hasFilters && departures.length !== totalDepartures;
+	$: hasFilters = $activeFilters.size > 0;
+	$: isFiltered = hasFilters && $filteredDepartures.length !== totalDepartures;
 	
 	let departureCards: HTMLElement[] = [];
 	let containerRef: HTMLElement;
 	
-	// Animate departures when they load
-	$: if (browser && departures.length > 0 && departureCards.length > 0) {
-		animateCards();
+	// Use a reactive statement to reset the cards array whenever the list changes.
+	// This is crucial for when the list goes from 0 to >0 items.
+	$: if ($filteredDepartures) {
+		departureCards = [];
 	}
+
+	// Use afterUpdate to run animations after the DOM has been updated.
+	afterUpdate(() => {
+		if (browser && departureCards.length > 0) {
+			animateCards();
+		}
+	});
 	
 	function animateCards() {
-		if (!browser || !departureCards.length) return;
+		// Filter out cards that are already visible to prevent re-animating.
+		const cardsToAnimate = departureCards.filter(card => !card.style.opacity || parseFloat(card.style.opacity) === 0);
+		if (cardsToAnimate.length === 0) return;
 		
-		gsap.fromTo(departureCards, 
+		gsap.fromTo(cardsToAnimate, 
 			{ 
 				opacity: 0, 
 				y: 30,
@@ -44,7 +52,7 @@
 </script>
 
 
-{#if departures.length > 0}
+{#if $filteredDepartures.length > 0}
 	<div bind:this={containerRef} class="w-full">
 		<!-- Status Header -->
 		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-2 sm:space-y-0">
@@ -55,28 +63,28 @@
 				</span>
 				<div class="h-3 w-px bg-gray-600"></div>
 				<span class="text-xs sm:text-sm text-gray-300 font-bold">
-					{departures.length} ENTRIES
+					{$filteredDepartures.length} ENTRIES
 				</span>
 			</div>
 			
 			{#if isFiltered}
 				<div class="flex items-center space-x-2 text-xs text-orange-400">
 					<span class="font-mono">FILTERED:</span>
-					<span class="text-white">{departures.length}/{totalDepartures}</span>
+					<span class="text-white">{$filteredDepartures.length}/{totalDepartures}</span>
 				</div>
 			{/if}
 		</div>
 		
 		<!-- Departures Grid -->
 		<div class="space-y-2">
-			{#each departures as departure, i}
-				<div bind:this={departureCards[i]} class="departure-card-container">
+			{#each $filteredDepartures as departure, i (departure.tripId)}
+				<div bind:this={departureCards[i]} class="departure-card-container" style="opacity: 0">
 					<DepartureCard {departure} />
 				</div>
 			{/each}
 		</div>
 	</div>
-{:else if totalDepartures > 0 && departures.length === 0}
+{:else if totalDepartures > 0 && $filteredDepartures.length === 0}
 	<!-- Filtered No Results -->
 	<div class="w-full text-center py-12">
 		<div class="border border-orange-500/30 bg-black/60 backdrop-blur-sm p-8 max-w-md mx-auto">
@@ -98,7 +106,7 @@
 					No departures match current filter criteria
 				</p>
 				<div class="pt-4">
-					<Button variant="primary" onClick={onClearFilters}>
+					<Button variant="primary" onClick={filterActions.handleClearFilters}>
 						RESET.FILTERS
 					</Button>
 				</div>

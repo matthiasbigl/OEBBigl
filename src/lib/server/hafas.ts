@@ -1,7 +1,7 @@
 import {createClient} from 'hafas-client'
 import {profile as oebbProfile} from 'hafas-client/p/oebb/index.js'
 
-const client = createClient(oebbProfile, 'biglmatthias@gmail.com');
+const client = createClient(oebbProfile, 'doddlnet@gmail.com');
 
 export interface Departure {
 	when: string;
@@ -17,6 +17,7 @@ export interface Departure {
 	remarks?: Array<{
 		text: string;
 	}>;
+	tripId: string;
 }
 
 export interface Station {
@@ -72,6 +73,7 @@ export interface DepartureOptions {
  * This is used for API filtering to reduce data transfer and improve performance.
  * Works in combination with client-side filtering for maximum flexibility.
  */
+
 function filterDepartures(departures: Departure[], filters: string[]): Departure[] {
 	if (!filters || filters.length === 0) return departures;
 	
@@ -93,7 +95,8 @@ function formatDepartures(departures: Departure[], format: 'full' | 'minimal'): 
 			time: dep.when,
 			delay: dep.delay ? Math.floor(dep.delay / 60) : 0, // Convert to minutes
 			platform: dep.platform,
-			product: dep.line?.product
+			product: dep.line?.product,
+			tripId: dep.tripId
 		}));
 	}
 	return departures;
@@ -241,11 +244,11 @@ export async function getTrainDepartures(
 			interregional: true,
 			regional: true,
 			suburban: true,
-			bus: false,
-			ferry: false,
-			subway: false,
-			tram: false,
-			onCall: false
+			bus: true,
+			ferry: true,
+			subway: true,
+			tram: true,
+			onCall: true
 		};
 		
 		const products = options.includeProducts || defaultProducts;
@@ -256,10 +259,11 @@ export async function getTrainDepartures(
 			duration: Math.max(duration, pageSize * 3),
 			results: requestResults,
 			products: products,
-			remarks: false // Disable detailed remarks to reduce data
+			remarks: false, // Disable detailed remarks to reduce data
+			language: 'de'
 		});
 
-		console.log('HAFAS client departures response:', JSON.stringify(departuresResponse, null, 2));
+		// console.log('HAFAS client departures response:', JSON.stringify(departuresResponse, null, 2));
 
 		// Convert hafas-client format to our interface
 		const allDepartures = departuresResponse.departures?.map((dep: any) => {
@@ -280,7 +284,8 @@ export async function getTrainDepartures(
 					trainNumber: trainNumber,
 					product: dep.line?.product
 				},
-				remarks: []
+				remarks: [],
+				tripId: dep.tripId
 			};
 		}) || [];
 

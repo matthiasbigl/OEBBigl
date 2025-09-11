@@ -10,9 +10,6 @@
 		name: string;
 		products?: Record<string, boolean>;
 	};
-	export let activeFilters: Set<string>;
-	export let onToggleFilter: (product: string) => void;
-	export let onClearFilters: () => void;
 	export let onRefresh: () => Promise<void>;
 	export let isRefreshing: boolean = false;
 	export let lastUpdate: Date;
@@ -20,6 +17,39 @@
 
 	let containerRef: HTMLElement;
 	let contentRef: HTMLElement;
+	let isMobile = false;
+	
+	// Mobile detection and default collapse state
+	onMount(() => {
+		// Check if mobile on mount
+		isMobile = window.innerWidth < 768;
+		
+		// Collapse by default on mobile
+		if (isMobile) {
+			isCollapsed = true;
+		}
+		
+		// Add resize listener
+		const handleResize = () => {
+			const wasMobile = isMobile;
+			isMobile = window.innerWidth < 768;
+			
+			// If switching from desktop to mobile, collapse
+			if (!wasMobile && isMobile) {
+				isCollapsed = true;
+			}
+			// If switching from mobile to desktop, expand
+			else if (wasMobile && !isMobile) {
+				isCollapsed = false;
+			}
+		};
+		
+		window.addEventListener('resize', handleResize);
+		
+		return () => {
+			window.removeEventListener('resize', handleResize);
+		};
+	});
 
 	const toggleCollapse = () => {
 		isCollapsed = !isCollapsed;
@@ -71,8 +101,13 @@
 				<div class="text-xs text-gray-400 font-mono tracking-wider">STATION.ACTIVE</div>
 				<div class="h-4 w-px bg-gray-600"></div>
 				<h2 class="text-lg font-bold text-white truncate font-title">{station.name}</h2>
-				<div class="text-gray-400 transition-transform duration-200 {isCollapsed ? '' : 'rotate-180'}">
-					▼
+				<div class="flex items-center space-x-2">
+					{#if isMobile}
+						<span class="text-xs text-gray-500 font-mono">MOBILE</span>
+					{/if}
+					<div class="text-gray-400 transition-transform duration-200 {isCollapsed ? '' : 'rotate-180'}">
+						▼
+					</div>
 				</div>
 			</button>
 			
@@ -112,9 +147,6 @@
 		<div class="p-4">
 			<StationInfo 
 				{station}
-				{activeFilters}
-				{onToggleFilter}
-				{onClearFilters}
 			/>
 		</div>
 	</div>

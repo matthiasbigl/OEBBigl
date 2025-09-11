@@ -19,6 +19,20 @@ html, body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+/* Grid background pattern */
+.bg-grid {
+	background-image: 
+		linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+	background-size: 20px 20px;
+	animation: grid-shift 30s linear infinite;
+}
+
+@keyframes grid-shift {
+	0% { background-position: 0 0; }
+	100% { background-position: 50px 50px; }
+}
+
 	}
 
 
@@ -38,6 +52,34 @@ html, body {
 	.font-body {
 		font-family: 'Rajdhani', sans-serif;
 		font-weight: 400;
+	}
+
+	/* Noise background effect - Made much more visible for testing */
+	.bg-noise {
+		background-image: 
+			radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0);
+		background-size: 15px 15px;
+		animation: noise 0.5s infinite linear;
+		z-index: 5;
+	}
+	
+	@keyframes noise {
+		0% { transform: translate(0, 0); }
+		10% { transform: translate(-5%, -5%); }
+		20% { transform: translate(-10%, 5%); }
+		30% { transform: translate(5%, -10%); }
+		40% { transform: translate(-5%, 15%); }
+		50% { transform: translate(-10%, 5%); }
+		60% { transform: translate(15%, 0%); }
+		70% { transform: translate(0%, 15%); }
+		80% { transform: translate(-15%, 10%); }
+		90% { transform: translate(10%, 5%); }
+		100% { transform: translate(5%, 0%); }
+	}
+
+	/* Scanline animation */
+	.scanline {
+		transform: translateY(-100vh);
 	}
 }
 
@@ -176,5 +218,14 @@ textarea {
 
 	.terminal-cursor {
 		animation: blink 1s infinite;
+	}
+
+	/* Additional iOS safe area support for min-height screens */
+	@supports (padding: max(0px)) {
+		.min-h-screen {
+			min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+			padding-top: env(safe-area-inset-top);
+			padding-bottom: env(safe-area-inset-bottom);
+		}
 	}
 }
