@@ -62,6 +62,17 @@ export const availablePlatforms = derived(
 	}
 );
 
+// Shared derived stores to prevent duplicate computations
+export const totalActiveFilters = derived(
+	[activeFilters, activePlatformFilters],
+	([$activeFilters, $activePlatformFilters]) => $activeFilters.size + $activePlatformFilters.size
+);
+
+export const hasActiveFilters = derived(
+	totalActiveFilters,
+	($totalActiveFilters) => $totalActiveFilters > 0
+);
+
 // Actions
 export const filterActions = {
 	handleToggleFilter(productType: string) {

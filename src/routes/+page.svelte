@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { onMount, onDestroy } from 'svelte';
-	import { gsap } from 'gsap';
-	import { ScrollTrigger } from 'gsap/ScrollTrigger';
 	import { browser } from '$app/environment';
 	import CollapsibleSearchSection from '$lib/components/search/CollapsibleSearchSection.svelte';
 	import CollapsibleStationInfo from '$lib/components/station/CollapsibleStationInfo.svelte';
@@ -12,12 +10,22 @@
 	import { 
 		isSearching, searchActions, currentStation, isDataLoading,
 		isRefreshing, lastUpdate, refreshActions,
-		activeFilters, activePlatformFilters, filteredDepartures, filterActions
+		activeFilters, activePlatformFilters, filteredDepartures, filterActions,
+		totalActiveFilters, hasActiveFilters
 	} from '$lib/stores';
+	import { 
+		createPageAnimations, 
+		landingPageAnimations,
+		type AnimationController
+	} from '$lib/utils/animations';
 	
 	export let data: PageData;
 	
-	// Animation refs
+	// Constants
+	const AUTO_REFRESH_INTERVAL = 60; // seconds
+	const DATA_LOADING_CLEAR_DELAY = 200; // ms
+	
+	// Component refs
 	let pageContainer: HTMLElement;
 	let headerRef: HTMLElement;
 	let gridBackground: HTMLElement;
@@ -25,50 +33,61 @@
 	let stationContainer: HTMLElement;
 	let departuresContainer: HTMLElement;
 	
+	// Animation controller
+	let pageAnimationController: AnimationController | null = null;
+	
 	// Auto-refresh interval ID
 	let autoRefreshInterval: ReturnType<typeof setInterval> | null = null;
 	
+	// Reactive computed values - use shared stores to avoid duplicate computations
+	$: filteredCount = $filteredDepartures.length;
+	$: totalDepartures = data.departures?.length || 0;
+	$: isFiltering = filteredCount !== totalDepartures;
 	
-	onMount(() => {
-		// Initialize departures in the filter store
-		if (data.departures) {
-			filterActions.setDepartures(data.departures);
-		}
+	/**
+	 * Handles initial station setup and localStorage management
+	 */
+	function handleInitialStationSetup(): boolean {
+		if (!browser) return false;
 		
-		// Handle initial station setup and localStorage
-		if (browser) {
-			// If no station in URL but we have a stored station, redirect
-			if (!data.station || data.station === '') {
-				const lastVisited = searchActions.getLastVisitedStation();
-				if (lastVisited) {
-					searchActions.handleStationSearch(lastVisited);
-					return; // Exit early since we're redirecting
-				}
-			} else {
-				// Update stored station with current one
-				searchActions.setCurrentStation(data.station);
+		// If no station in URL but we have a stored station, redirect
+		if (!data.station || data.station === '') {
+			const lastVisited = searchActions.getLastVisitedStation();
+			if (lastVisited) {
+				searchActions.handleStationSearch(lastVisited);
+				return true; // Indicates we're redirecting
 			}
+		} else {
+			// Update stored station with current one
+			searchActions.setCurrentStation(data.station);
 		}
-		
-		// Start auto-refresh (only in browser)
-		if (browser) {
-			autoRefreshInterval = refreshActions.startAutoRefresh(60);
-		}
-		
-		// Only run animations in browser
-		if (browser) {
-			// Register GSAP plugins
-			gsap.registerPlugin(ScrollTrigger);
-			
-			// Initialize GSAP animations
-			initializeAnimations();
-		}
-	});
+		return false;
+	}
 	
-	// Update departures when data changes
-	$: if (data.departures) {
-		filterActions.setDepartures(data.departures);
-		
+	/**
+	 * Starts the auto-refresh functionality
+	 */
+	function startAutoRefresh(): void {
+		if (browser) {
+			autoRefreshInterval = refreshActions.startAutoRefresh(AUTO_REFRESH_INTERVAL);
+		}
+	}
+	
+	/**
+	 * Handles data loading state clearing with delay
+	 */
+	function clearDataLoadingState(): void {
+		if ($isDataLoading) {
+			setTimeout(() => {
+				refreshActions.clearDataLoading();
+			}, DATA_LOADING_CLEAR_DELAY);
+		}
+	}
+	
+	/**
+	 * Handles station change and filter clearing
+	 */
+	function handleStationChange(): void {
 		// Clear filters when switching to a new station
 		if (data.station !== $currentStation) {
 			filterActions.handleClearFilters();
@@ -77,15 +96,46 @@
 				searchActions.setCurrentStation(data.station);
 			}
 		}
-		
-		// Clear data loading state when new data arrives
-		if ($isDataLoading) {
-			setTimeout(() => {
-				refreshActions.clearDataLoading();
-			}, 200);
-		}
 	}
 	
+	onMount(() => {
+		// Handle initial station setup and localStorage
+		const isRedirecting = handleInitialStationSetup();
+		if (isRedirecting) return; // Exit early since we're redirecting
+		
+		// Initialize departures in the filter store only if we have data
+		if (data.departures) {
+			filterActions.setDepartures(data.departures);
+		}
+		
+		// Start auto-refresh functionality
+		startAutoRefresh();
+		
+		// Initialize animations using our animation system
+		if (browser && headerRef && searchContainer) {
+			pageAnimationController = createPageAnimations({
+				pageContainer,
+				headerRef,
+				gridBackground,
+				searchContainer,
+				stationContainer,
+				departuresContainer
+			});
+			
+			pageAnimationController.initialize();
+		}
+	});
+	
+	// Update departures when data changes
+	$: if (data.departures) {
+		filterActions.setDepartures(data.departures);
+		clearDataLoadingState();
+	}
+	
+	// Handle station changes separately to avoid unnecessary updates
+	$: if (data.station && data.station !== $currentStation) {
+		handleStationChange();
+	}
 	
 	onDestroy(() => {
 		// Stop auto-refresh
@@ -93,151 +143,9 @@
 			refreshActions.stopAutoRefresh(autoRefreshInterval);
 		}
 		
-		// Cleanup GSAP only in browser
-		if (browser && typeof gsap !== 'undefined') {
-			// Kill all tweens on bound elements
-			if (headerRef) gsap.killTweensOf(headerRef);
-			if (searchContainer) gsap.killTweensOf(searchContainer);
-			if (stationContainer) gsap.killTweensOf(stationContainer);
-			if (departuresContainer) gsap.killTweensOf(departuresContainer);
-			if (gridBackground) gsap.killTweensOf(gridBackground);
-			
-			// Clean up ALL ScrollTrigger instances
-			ScrollTrigger.getAll().forEach(trigger => trigger.kill());
-			ScrollTrigger.refresh();
-		}
+		// Cleanup animations using our animation system
+		pageAnimationController?.cleanup();
 	});
-	
-	function initializeAnimations() {
-		// Guard against SSR
-		if (!browser || !headerRef || !searchContainer) return;
-		
-		// Set initial states for mobile-first animations
-		if (headerRef && searchContainer) {
-			gsap.set([headerRef, searchContainer], { 
-				opacity: 0, 
-				y: -30,
-				scale: 0.95
-			});
-		}
-		
-		if (stationContainer) {
-			gsap.set(stationContainer, { 
-				opacity: 0, 
-				y: 20,
-				scale: 0.98
-			});
-		}
-		
-		// Create staggered entrance timeline
-		const mainTl = gsap.timeline({ delay: 0.2 });
-		
-		// Header entrance with cyber glitch effect
-		if (headerRef) {
-			mainTl.to(headerRef, {
-				opacity: 1,
-				y: 0,
-				scale: 1,
-				duration: 1.2,
-				ease: "power3.out"
-			});
-		}
-		
-		// Set up scroll-based parallax for grid background
-		if (gridBackground) {
-			// Create a scroll-triggered parallax effect
-			ScrollTrigger.create({
-				trigger: pageContainer,
-				start: "top top",
-				end: "bottom top",
-				scrub: true,
-				onUpdate: (self) => {
-					// Move the grid background based on scroll progress
-					const progress = self.progress;
-					const yPos = progress * 100; // Move 100px over full scroll
-					const xPos = progress * 50;  // Move 50px horizontally
-					gsap.set(gridBackground, {
-						backgroundPosition: `${xPos}px ${yPos}px`
-					});
-				}
-			});
-			
-			// Also add the continuous subtle movement
-			gsap.to(gridBackground, {
-				backgroundPosition: "20px 20px",
-				duration: 20,
-				ease: "none",
-				repeat: -1,
-				yoyo: true
-			});
-		}
-		
-		
-		
-		// Search container with smooth slide up
-		if (searchContainer) {
-			mainTl.to(searchContainer, {
-				opacity: 1,
-				y: 0,
-				scale: 1,
-				duration: 0.8,
-				ease: "back.out(1.2)"
-			}, "-=0.6");
-		}
-		
-		// Station container with gentle bounce
-		if (stationContainer) {
-			mainTl.to(stationContainer, {
-				opacity: 1,
-				y: 0,
-				scale: 1,
-				duration: 0.9,
-				ease: "power2.out"
-			}, "-=0.4");
-		}
-		
-		// Animate scanlines with bound elements only
-		const scanlineElements = document.querySelectorAll(".scanline");
-		if (scanlineElements.length > 0) {
-			gsap.to(scanlineElements, {
-				y: "120vh",
-				duration: 3,
-				ease: "none",
-				repeat: -1,
-				stagger: {
-					amount: 1.5,
-					from: "random"
-				}
-			});
-		}
-		
-		// Add subtle floating animation to bound floating elements
-		const floatingElements = document.querySelectorAll(".floating-element");
-		if (floatingElements.length > 0) {
-			gsap.to(floatingElements, {
-				y: "random(-5, 5)",
-				rotation: "random(-1, 1)",
-				duration: "random(3, 6)",
-				ease: "sine.inOut",
-				repeat: -1,
-				yoyo: true,
-				stagger: 0.3
-			});
-		}
-		
-		// Pulse effect for status indicators
-		const pulseElements = document.querySelectorAll(".pulse-element");
-		if (pulseElements.length > 0) {
-			gsap.to(pulseElements, {
-				scale: 1.05,
-				opacity: 0.8,
-				duration: 2,
-				ease: "power2.inOut",
-				repeat: -1,
-				yoyo: true
-			});
-		}
-	}
 </script>
 
 <svelte:head>
@@ -251,9 +159,9 @@
 <!-- Main Container with Retro-Futuristic Background -->
 <div bind:this={pageContainer} class="min-h-screen bg-black text-gray-100 font-mono relative overflow-hidden">
 	<!-- Animated Grid Background -->
-	<div bind:this={gridBackground} class="fixed inset-0 opacity-20 pointer-events-none">
+	<div bind:this={gridBackground} class="fixed pointer-events-none" style="top: -100px; left: -100px; right: -100px; bottom: -100px; opacity: 0.2;">
 		<div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div>
-		<div class="absolute inset-0" style="background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 20px 20px;"></div>
+		<div class="absolute inset-0 bg-grid"></div>
 	</div>
 	
 	<!-- Scanlines for CRT Effect -->
@@ -274,9 +182,9 @@
 				<!-- Main Title -->
 				<div class="text-center space-y-2">
 					<h1 class="text-2xl sm:text-3xl lg:text-4xl font-title tracking-wider">
-						<span class="text-gray-500">◾</span>
+						
 						<span class="mx-2 sm:mx-4 text-white">CYBER STATION</span>
-						<span class="text-gray-500">◾</span>
+						
 					</h1>
 					<div class="text-xs sm:text-sm text-gray-400 tracking-widest font-mono">
 						REALTIME DEPARTURE MATRIX
@@ -340,24 +248,25 @@
 									<span class="text-xs text-cyan-400 font-mono animate-pulse">
 										UPDATING...
 									</span>
-								{:else if $filteredDepartures.length !== (data.departures?.length || 0)}
+								{:else if isFiltering}
 									<div class="h-4 w-px bg-gray-600"></div>
 									<span class="text-xs text-gray-500 font-mono">
-										{$filteredDepartures.length}/{data.departures?.length || 0} FILTERED
+										{filteredCount}/{totalDepartures} FILTERED
 									</span>
 								{/if}
-								{#if $activeFilters.size > 0 || $activePlatformFilters.size > 0}
+								{#if $hasActiveFilters}
 									<div class="h-4 w-px bg-gray-600"></div>
 									<span class="text-xs text-blue-400 font-mono">
-										{$activeFilters.size + $activePlatformFilters.size} FILTER{$activeFilters.size + $activePlatformFilters.size !== 1 ? 'S' : ''} ACTIVE
+										{$totalActiveFilters} FILTER{$totalActiveFilters !== 1 ? 'S' : ''} ACTIVE
 									</span>
 								{/if}
 							</div>
 							
-							{#if $activeFilters.size > 0 || $activePlatformFilters.size > 0}
+							{#if $hasActiveFilters}
 								<button
 									on:click={filterActions.handleClearFilters}
 									class="text-xs text-gray-400 hover:text-gray-200 transition-colors duration-200 font-mono"
+									title="Clear all {$totalActiveFilters} active filter{$totalActiveFilters !== 1 ? 's' : ''}"
 								>
 									CLEAR.ALL.FILTERS
 								</button>
@@ -368,7 +277,7 @@
 					<!-- Departures List -->
 					<div class="p-4 transition-opacity duration-300 {$isDataLoading ? 'opacity-50' : 'opacity-100'}">
 						<DeparturesList 
-							totalDepartures={data.departures?.length || 0}
+							totalDepartures={totalDepartures}
 						/>
 					</div>
 				</div>

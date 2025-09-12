@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Departure } from '$lib/server/hafas';
-	import { onMount } from 'svelte';
-	import { gsap } from 'gsap';
+	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import { addHoverEffects, cleanupElementAnimations, animationPresets } from '$lib/utils/animations';
 	
 	export let departure: Departure;
 
@@ -35,41 +35,14 @@
 	};
 	
 	onMount(() => {
-		// Only run animations in browser
 		if (!browser || !cardRef) return;
 		
-		// Add hover animations
-		const handleMouseEnter = () => {
-			if (browser && cardRef) {
-				gsap.to(cardRef, {
-					scale: 1.02,
-					y: -2,
-					duration: 0.3,
-					ease: "power2.out"
-				});
-			}
-		};
-		
-		const handleMouseLeave = () => {
-			if (browser && cardRef) {
-				gsap.to(cardRef, {
-					scale: 1,
-					y: 0,
-					duration: 0.3,
-					ease: "power2.out"
-				});
-			}
-		};
-		
-		cardRef.addEventListener('mouseenter', handleMouseEnter);
-		cardRef.addEventListener('mouseleave', handleMouseLeave);
-		
-		return () => {
-			if (cardRef) {
-				cardRef.removeEventListener('mouseenter', handleMouseEnter);
-				cardRef.removeEventListener('mouseleave', handleMouseLeave);
-			}
-		};
+		// Add hover effects using our animation system
+		addHoverEffects([cardRef], animationPresets.card.hover);
+	});
+	
+	onDestroy(() => {
+		cleanupElementAnimations([cardRef]);
 	});
 </script>
 

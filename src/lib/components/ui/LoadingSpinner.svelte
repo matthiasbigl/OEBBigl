@@ -1,8 +1,16 @@
 <script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
+	import { loadingAnimations, cleanupElementAnimations } from '$lib/utils/animations';
 	
 	export let size: 'sm' | 'md' | 'lg' = 'md';
 	export let color: 'gray' | 'green' | 'orange' | 'white' = 'gray';
 	export let text: string = '';
+	
+	let spinnerContainer: HTMLElement;
+	let outerSquare: HTMLElement;
+	let innerSquare: HTMLElement;
+	let centerDot: HTMLElement;
 	
 	const sizeClasses = {
 		sm: 'w-3 h-3',
@@ -23,18 +31,31 @@
 		orange: 'text-orange-400',
 		white: 'text-white'
 	};
+	
+	onMount(() => {
+		if (browser && outerSquare && innerSquare && centerDot) {
+			// Use our animation system for spinner animations
+			loadingAnimations.spin(outerSquare);
+			loadingAnimations.spin(innerSquare);
+			loadingAnimations.pulse(centerDot);
+		}
+	});
+	
+	onDestroy(() => {
+		cleanupElementAnimations([spinnerContainer, outerSquare, innerSquare, centerDot]);
+	});
 </script>
 
-<div class="flex items-center justify-center gap-3">
+<div bind:this={spinnerContainer} class="flex items-center justify-center gap-3">
 	<!-- Retro-futuristic loading animation -->
 	<div class="relative {sizeClasses[size]}">
 		<!-- Outer rotating square -->
-		<div class="absolute inset-0 border border-{colorClasses[color]} animate-spin" style="animation-duration: 2s;"></div>
+		<div bind:this={outerSquare} class="absolute inset-0 border border-{colorClasses[color]}"></div>
 		<!-- Inner rotating square -->
-		<div class="absolute inset-1 border border-{colorClasses[color]} animate-spin opacity-60" style="animation-duration: 1.5s; animation-direction: reverse;"></div>
+		<div bind:this={innerSquare} class="absolute inset-1 border border-{colorClasses[color]} opacity-60"></div>
 		<!-- Center dot -->
 		<div class="absolute inset-0 flex items-center justify-center">
-			<div class="w-1 h-1 bg-{colorClasses[color]} animate-pulse"></div>
+			<div bind:this={centerDot} class="w-1 h-1 bg-{colorClasses[color]}"></div>
 		</div>
 	</div>
 	

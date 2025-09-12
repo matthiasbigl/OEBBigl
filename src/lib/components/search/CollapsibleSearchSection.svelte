@@ -1,39 +1,44 @@
 <script lang="ts">
 	import StationSearch from './StationSearch.svelte';
 	import { onMount, onDestroy } from 'svelte';
-	import { gsap } from 'gsap';
 	import { browser } from '$app/environment';
+	import { collapsibleAnimations, cleanupElementAnimations } from '$lib/utils/animations';
 	
 	export let stationName: string;
 	export let isCollapsed: boolean = false;
 	
+	// Constants
+	const MOBILE_BREAKPOINT = 768;
+	
 	let containerRef: HTMLElement;
-	let contentRef: HTMLElement;
+	let collapsibleContentRef: HTMLElement;
 	let isMobile = false;
+	
+	/**
+	 * Checks if the current viewport is considered mobile
+	 */
+	function checkIsMobile(): boolean {
+		return window.innerWidth < MOBILE_BREAKPOINT;
+	}
+	
+	/**
+	 * Animates the collapsible content using our animation system
+	 */
+	function animateContent(collapsed: boolean): void {
+		if (!browser || !collapsibleContentRef) return;
+		
+		// Use our collapsible animation system
+		collapsibleAnimations.toggle(collapsibleContentRef, collapsed);
+	}
 	
 	// Mobile detection and default collapse state
 	onMount(() => {
 		// Check if mobile on mount
-		isMobile = window.innerWidth < 768;
-		
-		// Collapse by default on mobile
-		if (isMobile) {
-			isCollapsed = true;
-		}
+		isMobile = checkIsMobile();
 		
 		// Add resize listener
-		const handleResize = () => {
-			const wasMobile = isMobile;
-			isMobile = window.innerWidth < 768;
-			
-			// If switching from desktop to mobile, collapse
-			if (!wasMobile && isMobile) {
-				isCollapsed = true;
-			}
-			// If switching from mobile to desktop, expand
-			else if (wasMobile && !isMobile) {
-				isCollapsed = false;
-			}
+		const handleResize = (): void => {
+			isMobile = checkIsMobile();
 		};
 		
 		window.addEventListener('resize', handleResize);
@@ -43,40 +48,16 @@
 		};
 	});
 	
-	const toggleCollapse = () => {
+	/**
+	 * Toggles the collapsed state of the search section
+	 */
+	const toggleCollapse = (): void => {
 		isCollapsed = !isCollapsed;
-		if (browser && contentRef) {
-			if (isCollapsed) {
-				gsap.to(contentRef, {
-					height: 0,
-					opacity: 0,
-					duration: 0.4,
-					ease: "power2.inOut"
-				});
-			} else {
-				// First, get the natural height
-				gsap.set(contentRef, { height: 'auto' });
-				const autoHeight = contentRef.offsetHeight;
-				gsap.set(contentRef, { height: 0, opacity: 0 });
-				
-				// Then animate to that height
-				gsap.to(contentRef, {
-					height: autoHeight,
-					opacity: 1,
-					duration: 0.4,
-					ease: "power2.inOut",
-					onComplete: () => {
-						gsap.set(contentRef, { height: 'auto' });
-					}
-				});
-			}
-		}
+		animateContent(isCollapsed);
 	};
 	
 	onDestroy(() => {
-		if (browser && contentRef) {
-			gsap.killTweensOf(contentRef);
-		}
+		cleanupElementAnimations([collapsibleContentRef]);
 	});
 </script>
 
@@ -92,9 +73,6 @@
 				<span class="text-xs text-gray-400 font-mono tracking-wider">SEARCH.MODULE</span>
 			</div>
 			<div class="flex items-center space-x-2">
-				{#if isMobile}
-					<span class="text-xs text-gray-500 font-mono">MOBILE</span>
-				{/if}
 				<div class="text-gray-400 transition-transform duration-200 {isCollapsed ? '' : 'rotate-180'}">
 					▼
 				</div>
@@ -103,7 +81,7 @@
 	</button>
 	
 	<!-- Collapsible Content -->
-	<div bind:this={contentRef} class="collapsible-content overflow-hidden {isCollapsed ? 'h-0 opacity-0' : 'h-auto opacity-100'}">
+	<div bind:this={collapsibleContentRef} class="collapsible-content overflow-hidden {isCollapsed ? 'h-0 opacity-0' : 'h-auto opacity-100'}">
 		<div class="p-4">
 			<StationSearch 
 				{stationName}

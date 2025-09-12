@@ -2,23 +2,27 @@
 	import type { Departure } from '$lib/server/hafas';
 	import DepartureCard from './DepartureCard.svelte';
 	import Button from '../ui/Button.svelte';
-	import { afterUpdate } from 'svelte';
-	import { gsap } from 'gsap';
+	import { afterUpdate, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { activeFilters, activePlatformFilters, filteredDepartures, filterActions } from '$lib/stores';
+	import { departureAnimations, cleanupElementAnimations } from '$lib/utils/animations';
+	import { activeFilters, activePlatformFilters, filteredDepartures, filterActions, hasActiveFilters } from '$lib/stores';
 	
 	export let totalDepartures: number;
 
-	$: hasFilters = $activeFilters.size > 0 || $activePlatformFilters.size > 0;
-	$: isFiltered = hasFilters && $filteredDepartures.length !== totalDepartures;
+	// Remove duplicate reactive computations
+	$: isFiltered = $hasActiveFilters && $filteredDepartures.length !== totalDepartures;
 	
 	let departureCards: HTMLElement[] = [];
 	let containerRef: HTMLElement;
+	let lastDepartureCount = 0;
 	
-	// Use a reactive statement to reset the cards array whenever the list changes.
-	// This is crucial for when the list goes from 0 to >0 items.
-	$: if ($filteredDepartures) {
-		departureCards = [];
+	// Only reset cards array when departure count actually changes significantly
+	$: {
+		const currentCount = $filteredDepartures.length;
+		if (currentCount !== lastDepartureCount) {
+			departureCards = [];
+			lastDepartureCount = currentCount;
+		}
 	}
 
 	// Use afterUpdate to run animations after the DOM has been updated.
@@ -33,22 +37,13 @@
 		const cardsToAnimate = departureCards.filter(card => !card.style.opacity || parseFloat(card.style.opacity) === 0);
 		if (cardsToAnimate.length === 0) return;
 		
-		gsap.fromTo(cardsToAnimate, 
-			{ 
-				opacity: 0, 
-				y: 30,
-				scale: 0.95
-			},
-			{ 
-				opacity: 1, 
-				y: 0,
-				scale: 1,
-				duration: 0.6,
-				ease: "power2.out",
-				stagger: 0.1
-			}
-		);
+		// Use our animation system for departure card entrance
+		departureAnimations.entranceStagger(cardsToAnimate);
 	}
+	
+	onDestroy(() => {
+		cleanupElementAnimations(departureCards);
+	});
 </script>
 
 

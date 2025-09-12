@@ -1,33 +1,32 @@
 <script lang="ts">
 	import Button from '../ui/Button.svelte';
-	import { onMount } from 'svelte';
-	import { gsap } from 'gsap';
+	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import { filterAnimations, animateFilterToggle, cleanupElementAnimations } from '$lib/utils/animations';
 	import { activeFilters, filterActions } from '$lib/stores';
+	import SectionSeparator from '../ui/SectionSeparator.svelte';
 	
 	export let products: Record<string, boolean>;
+
+	// Constants
+	const GRID_BREAKPOINTS = {
+		base: 2,
+		sm: 3,
+		md: 4,
+		lg: 5
+	};
 
 	let filterContainer: HTMLElement;
 	let filterButtons: HTMLElement[] = [];
 	
-	onMount(() => {
-		// Only run animations in browser
-		if (!browser || !filterButtons.length) return;
-		
-		// Animate filter buttons on mount
-		gsap.fromTo(filterButtons,
-			{ opacity: 0, scale: 0.8, y: 10 },
-			{ 
-				opacity: 1, 
-				scale: 1, 
-				y: 0, 
-				duration: 0.5,
-				ease: "back.out(1.7)",
-				stagger: 0.05
-			}
-		);
-	});
+	// Reactive values
+	$: availableProducts = Object.entries(products).filter(([, available]) => available);
+	$: activeProductCount = $activeFilters.size;
+	$: totalProducts = availableProducts.length;
 	
+	/**
+	 * Product type display names mapping
+	 */
 	const productDisplayNames: Record<string, string> = {
 		'nationalExpress': 'ICE',
 		'national': 'IC', 
@@ -41,26 +40,41 @@
 		'onCall': 'ON-CALL'
 	};
 
+	/**
+	 * Gets the display name for a product type
+	 */
 	const getProductDisplayName = (product: string): string => 
 		productDisplayNames[product] || product.toUpperCase();
-
-	$: availableProducts = Object.entries(products).filter(([, available]) => available);
-	$: hasActiveFilters = $activeFilters.size > 0;
+	
+	/**
+	 * Handles product filter toggle with validation and animation
+	 */
+	const handleProductToggle = (product: string, buttonElement: HTMLElement): void => {
+		if (!product || product.trim() === '') return;
+		
+		// Animate the filter toggle
+		animateFilterToggle(buttonElement, !$activeFilters.has(product.toLowerCase()));
+		
+		// Handle the filter logic
+		filterActions.handleToggleFilter(product);
+	};
+	
+	onMount(() => {
+		// Animate filter buttons entrance using our animation system
+		if (browser && filterButtons.length) {
+			filterAnimations.buttonEntrance(filterButtons);
+		}
+	});
+	
+	onDestroy(() => {
+		cleanupElementAnimations(filterButtons);
+	});
 </script>
 
 
 <div bind:this={filterContainer} class="w-full">
 	<!-- Filter Header -->
-	<div class="flex items-center space-x-3 mb-4">
-		<div class="w-2 h-2 bg-blue-400 animate-pulse"></div>
-		<span class="text-xs text-gray-400 font-mono tracking-wider">TRANSPORT.FILTER</span>
-		{#if hasActiveFilters}
-			<div class="h-3 w-px bg-gray-600"></div>
-			<span class="text-xs text-orange-400 font-mono">
-				{$activeFilters.size} ACTIVE
-			</span>
-		{/if}
-	</div>
+	<SectionSeparator label="PRODUCT.FILTER" color="blue-400" />
 	
 	<!-- Filter Buttons Grid -->
 	<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
@@ -69,24 +83,12 @@
 				<Button
 					variant={$activeFilters.has(product.toLowerCase()) ? 'filter-active' : 'filter'}
 					size="sm"
-					onClick={() => filterActions.handleToggleFilter(product)}
+					onClick={() => handleProductToggle(product, filterButtons[i])}
 					title="Filter by {getProductDisplayName(product)}"
 				>
 					{getProductDisplayName(product)}
 				</Button>
 			</div>
 		{/each}
-		
-		{#if hasActiveFilters}
-			<div class="col-span-2 sm:col-span-1">
-				<Button
-					variant="danger"
-					size="sm"
-					onClick={filterActions.handleClearFilters}
-				>
-					RESET.ALL
-				</Button>
-			</div>
-		{/if}
 	</div>
 </div>

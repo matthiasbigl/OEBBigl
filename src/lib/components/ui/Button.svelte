@@ -1,8 +1,8 @@
 
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { gsap } from 'gsap';
+	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import { createButtonAnimations, cleanupElementAnimations } from '$lib/utils/animations';
 	
 	export let variant: 'primary' | 'secondary' | 'danger' | 'filter' | 'filter-active' | 'platform' | 'platform-active' = 'primary';
 	export let size: 'sm' | 'md' | 'lg' = 'md';
@@ -11,6 +11,7 @@
 	export let title = '';
 
 	let buttonRef: HTMLButtonElement;
+	let buttonAnimations: ReturnType<typeof createButtonAnimations>;
 
 	const variants = {
 		primary: 'bg-gray-900 border border-gray-600 text-gray-100 hover:bg-gray-800 hover:border-gray-400 hover:text-white',
@@ -34,46 +35,32 @@
 	$: disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : '';
 	
 	onMount(() => {
-		// Only run animations in browser
 		if (!browser || !buttonRef) return;
+		
+		// Create button animation controller using our animation system
+		buttonAnimations = createButtonAnimations(buttonRef);
 		
 		const handleMouseEnter = () => {
 			if (!disabled && browser && buttonRef) {
-				gsap.to(buttonRef, {
-					scale: 1.05,
-					duration: 0.2,
-					ease: "power2.out"
-				});
+				buttonAnimations.hover();
 			}
 		};
 		
 		const handleMouseLeave = () => {
 			if (browser && buttonRef) {
-				gsap.to(buttonRef, {
-					scale: 1,
-					duration: 0.2,
-					ease: "power2.out"
-				});
+				buttonAnimations.release();
 			}
 		};
 		
 		const handleMouseDown = () => {
 			if (!disabled && browser && buttonRef) {
-				gsap.to(buttonRef, {
-					scale: 0.95,
-					duration: 0.1,
-					ease: "power2.out"
-				});
+				buttonAnimations.press();
 			}
 		};
 		
 		const handleMouseUp = () => {
 			if (!disabled && browser && buttonRef) {
-				gsap.to(buttonRef, {
-					scale: 1.05,
-					duration: 0.1,
-					ease: "power2.out"
-				});
+				buttonAnimations.hover();
 			}
 		};
 		
@@ -90,6 +77,10 @@
 				buttonRef.removeEventListener('mouseup', handleMouseUp);
 			}
 		};
+	});
+	
+	onDestroy(() => {
+		cleanupElementAnimations([buttonRef]);
 	});
 </script>
 

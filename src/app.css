@@ -20,15 +20,18 @@ html, body {
 /* Grid background pattern */
 .bg-grid {
 	background-image: 
-		linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+		linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px);
 	background-size: 20px 20px;
-	animation: grid-shift 30s linear infinite;
+	animation: grid-shift 10s linear infinite;
 }
 
 @keyframes grid-shift {
 	0% { background-position: 0 0; }
-	100% { background-position: 50px 50px; }
+	25% { background-position: 20px 0; }
+	50% { background-position: 20px 20px; }
+	75% { background-position: 0 20px; }
+	100% { background-position: 0 0; }
 }
 
 	}
@@ -52,29 +55,8 @@ html, body {
 		font-weight: 400;
 	}
 
-	/* Noise background effect - Made much more visible for testing */
-	.bg-noise {
-		background-image: 
-			radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0);
-		background-size: 15px 15px;
-		animation: noise 0.5s infinite linear;
-		z-index: 5;
-	}
 	
-	@keyframes noise {
-		0% { transform: translate(0, 0); }
-		10% { transform: translate(-5%, -5%); }
-		20% { transform: translate(-10%, 5%); }
-		30% { transform: translate(5%, -10%); }
-		40% { transform: translate(-5%, 15%); }
-		50% { transform: translate(-10%, 5%); }
-		60% { transform: translate(15%, 0%); }
-		70% { transform: translate(0%, 15%); }
-		80% { transform: translate(-15%, 10%); }
-		90% { transform: translate(10%, 5%); }
-		100% { transform: translate(5%, 0%); }
-	}
-
+	
 	/* Scanline animation */
 	.scanline {
 		transform: translateY(-100vh);

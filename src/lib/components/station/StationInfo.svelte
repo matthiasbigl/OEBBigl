@@ -1,30 +1,32 @@
 <script lang="ts">
 	import ProductFilter from './ProductFilter.svelte';
 	import PlatformFilter from './PlatformFilter.svelte';
+	import { activeFilters, activePlatformFilters, totalActiveFilters } from '$lib/stores';
 	
 	export let station: {
 		id: string;
 		name: string;
 		products?: Record<string, boolean>;
 	};
+	
+	// Reactive values - use shared stores to avoid duplicate computations
+	$: hasProducts = station.products && Object.keys(station.products).length > 0;
 </script>
 
-{#if station.products}
-	<ProductFilter 
-		products={station.products}
-	/>
-{/if}
+<!-- Filter section with proper accessibility -->
+<div role="region" aria-label="Station filters" class="space-y-4">
+	{#if hasProducts && station.products}
+		<ProductFilter 
+			products={station.products}
+		/>
+	{/if}
 
-<!-- Separator -->
-<div class="my-6 flex items-center">
-	<div class="flex-1 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent"></div>
-	<div class="px-4">
-		<div class="w-2 h-2 bg-cyan-400 animate-pulse"></div>
-	</div>
-	<div class="flex-1 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent"></div>
-</div>
-
-<!-- Platform Filter Section -->
-<div>
 	<PlatformFilter />
+	
+	<!-- Filter Status Summary (hidden from screen readers since it's redundant) -->
+	{#if $totalActiveFilters > 0}
+		<div class="text-xs text-gray-400 font-mono text-center" aria-hidden="true">
+			{$totalActiveFilters} ACTIVE FILTER{$totalActiveFilters !== 1 ? 'S' : ''}
+		</div>
+	{/if}
 </div>

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Button from '../ui/Button.svelte';
-	import { onMount } from 'svelte';
-	import { gsap } from 'gsap';
+	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import { searchAnimations, cleanupElementAnimations } from '$lib/utils/animations';
 	import { isSearching, currentStation, searchActions } from '$lib/stores/searchStore';
 	
 	export let stationName: string;
@@ -25,27 +25,18 @@
 	};
 	
 	onMount(() => {
-		// Only run animations in browser
 		if (!browser || !inputRef) return;
 		
-		// Add focus animations
+		// Add focus/blur animations using our animation system
 		const handleFocus = () => {
 			if (browser && inputRef) {
-				gsap.to(inputRef, {
-					scale: 1.02,
-					duration: 0.3,
-					ease: "power2.out"
-				});
+				searchAnimations.inputFocus(inputRef);
 			}
 		};
 		
 		const handleBlur = () => {
 			if (browser && inputRef) {
-				gsap.to(inputRef, {
-					scale: 1,
-					duration: 0.3,
-					ease: "power2.out"
-				});
+				searchAnimations.inputBlur(inputRef);
 			}
 		};
 		
@@ -58,6 +49,10 @@
 				inputRef.removeEventListener('blur', handleBlur);
 			}
 		};
+	});
+	
+	onDestroy(() => {
+		cleanupElementAnimations([inputRef]);
 	});
 </script>
 
