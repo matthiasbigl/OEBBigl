@@ -1,9 +1,19 @@
 <script lang="ts">
 	import Button from '../ui/Button.svelte';
+	import StationSuggestions from './StationSuggestions.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { searchAnimations, cleanupElementAnimations } from '$lib/utils/animations';
-	import { isSearching, currentStation, searchActions } from '$lib/stores/searchStore';
+	import { 
+		isSearching, 
+		currentStation, 
+		searchActions, 
+		searchSuggestions, 
+		isLoadingSuggestions, 
+		showSuggestions, 
+		selectedSuggestionIndex 
+	} from '$lib/stores/searchStore';
+	import type { Station } from '$lib/server/hafas';
 	
 	export let stationName: string;
 
@@ -23,22 +33,49 @@
 			searchActions.handleStationSearch(inputValue.trim());
 		}
 	};
+
+	const handleInput = () => {
+		// Show suggestions when user starts typing
+		if (inputValue.trim().length >= 2) {
+			searchActions.searchSuggestions(inputValue);
+		} else {
+			searchActions.clearSuggestions();
+		}
+	};
+
+	const handleKeyDown = (event: KeyboardEvent) => {
+		if (searchActions.handleKeyNavigation(event, $searchSuggestions)) {
+			// Navigation was handled, update input value if needed
+			const selectedIndex = $selectedSuggestionIndex;
+			if (selectedIndex >= 0 && $searchSuggestions[selectedIndex]) {
+				inputValue = $searchSuggestions[selectedIndex].name;
+			}
+			return;
+		}
+	};
+
+	const handleFocus = () => {
+		if (browser && inputRef) {
+			searchAnimations.inputFocus(inputRef);
+		}
+		// Show suggestions if we have a query
+		if (inputValue.trim().length >= 2) {
+			searchActions.searchSuggestions(inputValue);
+		}
+	};
+
+	const handleBlur = () => {
+		if (browser && inputRef) {
+			searchAnimations.inputBlur(inputRef);
+		}
+		// Delay clearing suggestions to allow clicks
+		setTimeout(() => {
+			searchActions.clearSuggestions();
+		}, 150);
+	};
 	
 	onMount(() => {
 		if (!browser || !inputRef) return;
-		
-		// Add focus/blur animations using our animation system
-		const handleFocus = () => {
-			if (browser && inputRef) {
-				searchAnimations.inputFocus(inputRef);
-			}
-		};
-		
-		const handleBlur = () => {
-			if (browser && inputRef) {
-				searchAnimations.inputBlur(inputRef);
-			}
-		};
 		
 		inputRef.addEventListener('focus', handleFocus);
 		inputRef.addEventListener('blur', handleBlur);
@@ -53,6 +90,7 @@
 	
 	onDestroy(() => {
 		cleanupElementAnimations([inputRef]);
+		searchActions.clearSuggestions();
 	});
 </script>
 
@@ -62,7 +100,7 @@
 		<!-- Input Field with Terminal Styling -->
 		<div class="relative">
 			<!-- Terminal Prompt -->
-			<div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-mono text-sm pointer-events-none">
+			<div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-mono text-sm pointer-events-none z-10">
 				$&gt;
 			</div>
 			
@@ -70,10 +108,19 @@
 				bind:this={inputRef}
 				type="text" 
 				bind:value={inputValue}
+				on:input={handleInput}
+				on:keydown={handleKeyDown}
 				placeholder="ENTER STATION NAME..."
 				disabled={$isSearching}
 				class="w-full pl-12 pr-4 py-3 bg-black/60 border border-gray-600 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-all duration-200 font-mono text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+				autocomplete="off"
+				role="combobox"
+				aria-expanded={$showSuggestions}
+				aria-haspopup="listbox"
 			>
+			
+			<!-- Suggestions Dropdown -->
+			<StationSuggestions />
 			
 			<!-- Input Border Effect -->
 			<div class="absolute inset-0 border border-gray-600 pointer-events-none transition-opacity duration-200 opacity-0 group-hover:opacity-100"></div>

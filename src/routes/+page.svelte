@@ -200,7 +200,7 @@
 		</header>
 
 		<!-- Station Search Section -->
-		<div bind:this={searchContainer} class="px-4 py-4 sm:px-6 lg:px-8">
+		<div bind:this={searchContainer} class="px-4 py-4 sm:px-6 lg:px-8 relative z-20">
 			<div class="max-w-4xl mx-auto">
 				<CollapsibleSearchSection
 					stationName={data.station}
@@ -210,7 +210,7 @@
 
 		<!-- Station Info Section -->
 		{#if data.location}
-			<div bind:this={stationContainer} class="px-4 py-4 sm:px-6 lg:px-8">
+			<div bind:this={stationContainer} class="px-4 py-4 sm:px-6 lg:px-8 relative z-10">
 				<div class="max-w-4xl mx-auto">
 					<CollapsibleStationInfo
 						station={data.location}
@@ -275,7 +275,7 @@
 					</div>
 					
 					<!-- Departures List -->
-					<div class="p-4 transition-opacity duration-300 {$isDataLoading ? 'opacity-50' : 'opacity-100'}">
+					<div class="p-4">
 						<DeparturesList 
 							totalDepartures={totalDepartures}
 						/>

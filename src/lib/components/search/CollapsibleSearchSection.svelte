@@ -81,8 +81,8 @@
 	</button>
 	
 	<!-- Collapsible Content -->
-	<div bind:this={collapsibleContentRef} class="collapsible-content overflow-hidden {isCollapsed ? 'h-0 opacity-0' : 'h-auto opacity-100'}">
-		<div class="p-4">
+	<div bind:this={collapsibleContentRef} class="collapsible-content {isCollapsed ? 'h-0 opacity-0 overflow-hidden' : 'h-auto opacity-100 overflow-visible'}">
+		<div class="p-4 relative">
 			<StationSearch 
 				{stationName}
 			/>
