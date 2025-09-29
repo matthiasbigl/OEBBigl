@@ -112,7 +112,7 @@ function calculatePagination(
 	baseUrl?: string
 ): TrainDeparturesResult['pagination'] {
 	const page = options.page || 1;
-	const pageSize = options.pageSize || options.results || 15;
+	const pageSize = options.pageSize || options.results || 30;
 	const hasNextPage = allDeparturesCount > pageSize;
 	const hasPrevPage = page > 1;
 	
@@ -194,7 +194,7 @@ export async function getTrainDepartures(
 		duration: options.duration || 60,
 		totalResults: 0,
 		currentPage: options.page || 1,
-		pageSize: options.pageSize || options.results || 15,
+		pageSize: options.pageSize || options.results || 45,
 		hasNextPage: false,
 		hasPrevPage: false
 	};
@@ -227,7 +227,7 @@ export async function getTrainDepartures(
 		// Parse options with defaults
 		const when = options.when ? new Date(options.when) : new Date();
 		const duration = options.duration || 60; // Default 1 hour
-		const pageSize = options.pageSize || options.results || 15;
+		const pageSize = options.pageSize || options.results || 45;
 		const page = options.page || 1;
 		
 		// For page-based pagination, calculate time offset
