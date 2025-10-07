@@ -1,1 +1,2 @@
-// place files you want to import through the `$lib` alias in this folder.
+export { default as Timeline } from './components/ui/Timeline.svelte';
+export type { TimelineNode, TimelineDetail } from './components/ui/timelineTypes';

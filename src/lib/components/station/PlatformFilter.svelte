@@ -1,12 +1,15 @@
 <script lang="ts">
 	import Button from '../ui/Button.svelte';
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
+	import { gsap } from 'gsap';
 	import { browser } from '$app/environment';
-	import { filterAnimations, animateFilterToggle, cleanupElementAnimations } from '$lib/utils/animations';
 	import { activePlatformFilters, availablePlatforms, filterActions } from '$lib/stores';
 	import SectionSeparator from '../ui/SectionSeparator.svelte';
 
 	// Constants
+	const ANIMATION_DURATION = 0.5;
+	const ANIMATION_EASE = "back.out(1.7)";
+	const STAGGER_DELAY = 0.05;
 	const GRID_BREAKPOINTS = {
 		base: 4,
 		sm: 6,
@@ -22,27 +25,38 @@
 	$: totalPlatforms = $availablePlatforms.length;
 	
 	/**
-	 * Handles platform filter toggle with validation and animation
+	 * Animates platform filter buttons on mount
 	 */
-	const handlePlatformToggle = (platform: string, buttonElement: HTMLElement): void => {
+	function animateFilterButtons(): void {
+		if (!browser || !filterButtons.length) return;
+		
+		gsap.fromTo(filterButtons,
+			{ 
+				opacity: 0, 
+				scale: 0.8, 
+				y: 10 
+			},
+			{ 
+				opacity: 1, 
+				scale: 1, 
+				y: 0, 
+				duration: ANIMATION_DURATION,
+				ease: ANIMATION_EASE,
+				stagger: STAGGER_DELAY
+			}
+		);
+	}
+	
+	/**
+	 * Handles platform filter toggle with validation
+	 */
+	const handlePlatformToggle = (platform: string): void => {
 		if (!platform || platform.trim() === '') return;
-		
-		// Animate the filter toggle
-		animateFilterToggle(buttonElement, !$activePlatformFilters.has(platform));
-		
-		// Handle the filter logic
 		filterActions.handleTogglePlatformFilter(platform);
 	};
 	
 	onMount(() => {
-		// Animate filter buttons entrance using our animation system
-		if (browser && filterButtons.length) {
-			filterAnimations.buttonEntrance(filterButtons);
-		}
-	});
-	
-	onDestroy(() => {
-		cleanupElementAnimations(filterButtons);
+		animateFilterButtons();
 	});
 </script>
 
@@ -58,7 +72,7 @@
 					<Button
 						variant={$activePlatformFilters.has(platform) ? 'platform-active' : 'platform'}
 						size="sm"
-						onClick={() => handlePlatformToggle(platform, filterButtons[i])}
+						onClick={() => handlePlatformToggle(platform)}
 						title="Filter by Platform {platform}"
 					>
 						{platform}

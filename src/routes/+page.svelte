@@ -1,302 +1,325 @@
 <script lang="ts">
-	import type { PageData } from './$types';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import CollapsibleSearchSection from '$lib/components/search/CollapsibleSearchSection.svelte';
-	import CollapsibleStationInfo from '$lib/components/station/CollapsibleStationInfo.svelte';
-	import DeparturesList from '$lib/components/departures/DeparturesList.svelte';
-	import ErrorMessage from '$lib/components/ui/ErrorMessage.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { 
-		isSearching, searchActions, currentStation, isDataLoading,
-		isRefreshing, lastUpdate, refreshActions,
-		activeFilters, activePlatformFilters, filteredDepartures, filterActions,
-		totalActiveFilters, hasActiveFilters
-	} from '$lib/stores';
-	import { 
-		createPageAnimations, 
-		landingPageAnimations,
-		type AnimationController
-	} from '$lib/utils/animations';
-	
-	export let data: PageData;
-	
-	// Constants
-	const AUTO_REFRESH_INTERVAL = 60; // seconds
-	const DATA_LOADING_CLEAR_DELAY = 200; // ms
-	
-	// Component refs
-	let pageContainer: HTMLElement;
-	let headerRef: HTMLElement;
-	let gridBackground: HTMLElement;
-	let searchContainer: HTMLElement;
-	let stationContainer: HTMLElement;
-	let departuresContainer: HTMLElement;
-	
-	// Animation controller
-	let pageAnimationController: AnimationController | null = null;
-	
-	// Auto-refresh interval ID
-	let autoRefreshInterval: ReturnType<typeof setInterval> | null = null;
-	
-	// Reactive computed values - use shared stores to avoid duplicate computations
-	$: filteredCount = $filteredDepartures.length;
-	$: totalDepartures = data.departures?.length || 0;
-	$: isFiltering = filteredCount !== totalDepartures;
-	
-	/**
-	 * Handles initial station setup and localStorage management
-	 */
-	function handleInitialStationSetup(): boolean {
-		if (!browser) return false;
-		
-		// If no station in URL but we have a stored station, redirect
-		if (!data.station || data.station === '') {
-			const lastVisited = searchActions.getLastVisitedStation();
-			if (lastVisited) {
-				searchActions.handleStationSearch(lastVisited);
-				return true; // Indicates we're redirecting
-			}
-		} else {
-			// Update stored station with current one
-			searchActions.setCurrentStation(data.station);
-		}
-		return false;
-	}
-	
-	/**
-	 * Starts the auto-refresh functionality
-	 */
-	function startAutoRefresh(): void {
+	import { goto } from '$app/navigation';
+	import Button from '$lib/components/ui/Button.svelte';
+	import {
+		createFadeInAnimation,
+		createSlideAnimation,
+		createMorphingBackground
+	} from '$lib/utils/pageAnimations';
+
+	type CleanupFn = () => void;
+
+	let heroSection: HTMLElement;
+	let statsContainer: HTMLElement;
+	let featureGrid: HTMLElement;
+	let systemStream: HTMLElement;
+	let morphBackground: HTMLElement;
+
+	let cleanupFns: CleanupFn[] = [];
+
+	const toDepartures = () => {
+		void goto('/departures');
+	};
+
+	const toJourneys = () => {
+		void goto('/journeys');
+	};
+
+	const docsUrl = 'https://github.com/matthiasbigl/OEBBigl/blob/main/docs/trip-planner-page-spec.md';
+
+	const openDocs = () => {
 		if (browser) {
-			autoRefreshInterval = refreshActions.startAutoRefresh(AUTO_REFRESH_INTERVAL);
+			window.open(docsUrl, '_blank', 'noopener,noreferrer');
+		} else {
+			void goto(docsUrl);
 		}
-	}
-	
-	/**
-	 * Handles data loading state clearing with delay
-	 */
-	function clearDataLoadingState(): void {
-		if ($isDataLoading) {
-			setTimeout(() => {
-				refreshActions.clearDataLoading();
-			}, DATA_LOADING_CLEAR_DELAY);
+	};
+
+	const stats = [
+		{
+			label: 'Live data source',
+			value: 'ÖBB HAFAS',
+			subtitle: 'Official realtime timetable feed'
+		},
+		{
+			label: 'Auto refresh',
+			value: 'Every 60s',
+			subtitle: 'Sync cadence tuned for live ops'
+		},
+		{
+			label: 'Adaptive layouts',
+			value: 'Mobile + Desktop',
+			subtitle: 'Navigation flexes with your device'
+		},
+		{
+			label: 'Visual language',
+			value: 'Retro cyber',
+			subtitle: 'Consistent styling across pages'
 		}
+	] as const;
+
+	interface FeatureAction {
+		label: string;
+		title: string;
+		onClick: () => void;
 	}
-	
-	/**
-	 * Handles station change and filter clearing
-	 */
-	function handleStationChange(): void {
-		// Clear filters when switching to a new station
-		if (data.station !== $currentStation) {
-			filterActions.handleClearFilters();
-			// Update current station and store in localStorage
-			if (browser && data.station) {
-				searchActions.setCurrentStation(data.station);
+
+	interface FeatureCard {
+		title: string;
+		description: string;
+		highlights: string[];
+		primaryAction: FeatureAction;
+		secondaryAction?: FeatureAction;
+	}
+
+	const features: FeatureCard[] = [
+		{
+			title: 'Realtime Departures Matrix',
+			description:
+				'Monitor live stops, filter platforms, and catch every signal flicker as soon as it appears in the network.',
+			highlights: [
+				'Granular platform + product filters',
+				'Auto-refresh with telemetry pulses',
+				'Collapsible info panels built for focus'
+			],
+			primaryAction: {
+				label: 'Launch Departures',
+				title: 'Open the realtime departures control board',
+				onClick: toDepartures
+			}
+		},
+		{
+			title: 'Journey Planning Console',
+			description:
+				'Plot complete itineraries, tweak transport products, and inspect every transfer in a cyber-grade timeline.',
+			highlights: [
+				'Dual-station smart search fields',
+				'Timeline view for each journey leg',
+				'Pagination-ready HAFAS integration'
+			],
+			primaryAction: {
+				label: 'Open Trip Planner',
+				title: 'Navigate to the journey planning interface',
+				onClick: toJourneys
+			},
+			secondaryAction: {
+				label: 'View Docs',
+				title: 'Read the journey planner design brief',
+				onClick: openDocs
 			}
 		}
-	}
-	
+	];
+
+	const timelineSteps = [
+		{
+			code: '01',
+			title: 'Scan the grid',
+			detail: 'Zero-latency inputs probe stations, validating availability before data leaves the terminal.'
+		},
+		{
+			code: '02',
+			title: 'Stabilise telemetry',
+			detail: 'Auto-refresh daemons sync every 60 seconds, smoothing jitter with adaptive throttling.'
+		},
+		{
+			code: '03',
+			title: 'Visualise the route',
+			detail: 'Journeys render in layered timelines, highlighting transfers, platforms, and dwell windows.'
+		}
+	] as const;
+
 	onMount(() => {
-		// Handle initial station setup and localStorage
-		const isRedirecting = handleInitialStationSetup();
-		if (isRedirecting) return; // Exit early since we're redirecting
-		
-		// Initialize departures in the filter store only if we have data
-		if (data.departures) {
-			filterActions.setDepartures(data.departures);
+		if (!browser) return;
+
+		const localCleanups: CleanupFn[] = [];
+
+		if (heroSection) {
+			const heroTimeline = createFadeInAnimation(heroSection, { duration: 0.8, delay: 0.1 });
+			localCleanups.push(() => heroTimeline.kill());
 		}
-		
-		// Start auto-refresh functionality
-		startAutoRefresh();
-		
-		// Initialize animations using our animation system
-		if (browser && headerRef && searchContainer) {
-			pageAnimationController = createPageAnimations({
-				pageContainer,
-				headerRef,
-				gridBackground,
-				searchContainer,
-				stationContainer,
-				departuresContainer
-			});
-			
-			pageAnimationController.initialize();
+
+		if (statsContainer) {
+			const cards = Array.from(statsContainer.querySelectorAll('[data-stat-card]')) as HTMLElement[];
+			if (cards.length > 0) {
+				const statsTimeline = createSlideAnimation(cards, 'up', { duration: 0.7, delay: 0.1 });
+				localCleanups.push(() => statsTimeline.kill());
+			}
 		}
+
+		if (featureGrid) {
+			const featureCards = Array.from(featureGrid.querySelectorAll('[data-feature-card]')) as HTMLElement[];
+			if (featureCards.length > 0) {
+				const featureTimeline = createSlideAnimation(featureCards, 'up', { duration: 0.85, delay: 0.15 });
+				localCleanups.push(() => featureTimeline.kill());
+			}
+		}
+
+		if (systemStream) {
+			const streamTimeline = createFadeInAnimation(systemStream, { duration: 0.75, delay: 0.2 });
+			localCleanups.push(() => streamTimeline.kill());
+		}
+
+		if (morphBackground) {
+			const morphTimeline = createMorphingBackground(morphBackground);
+			localCleanups.push(() => morphTimeline.kill());
+		}
+
+		cleanupFns = localCleanups;
+
+		return () => {
+			localCleanups.forEach((cleanup) => cleanup());
+			cleanupFns = [];
+		};
 	});
-	
-	// Update departures when data changes
-	$: if (data.departures) {
-		filterActions.setDepartures(data.departures);
-		clearDataLoadingState();
-	}
-	
-	// Handle station changes separately to avoid unnecessary updates
-	$: if (data.station && data.station !== $currentStation) {
-		handleStationChange();
-	}
-	
+
 	onDestroy(() => {
-		// Stop auto-refresh
-		if (autoRefreshInterval) {
-			refreshActions.stopAutoRefresh(autoRefreshInterval);
-		}
-		
-		// Cleanup animations using our animation system
-		pageAnimationController?.cleanup();
+		cleanupFns.forEach((cleanup) => cleanup());
+		cleanupFns = [];
 	});
 </script>
 
 <svelte:head>
-	<title>◾ CYBER STATION ◾</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-	<meta name="theme-color" content="#000000">
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<title>Cyber Station Control Hub</title>
+	<meta
+		name="description"
+		content="Command the ÖBB cyber station experience with a cinematic landing page guiding you to departures and journey planning."
+	/>
 </svelte:head>
 
-<!-- Main Container with Retro-Futuristic Background -->
-<div bind:this={pageContainer} class="min-h-screen bg-black text-gray-100 font-mono relative overflow-hidden">
-	<!-- Animated Grid Background -->
-	<div bind:this={gridBackground} class="fixed pointer-events-none" style="top: -100px; left: -100px; right: -100px; bottom: -100px; opacity: 0.2;">
-		<div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div>
-		<div class="absolute inset-0 bg-grid"></div>
-	</div>
-	
-	<!-- Scanlines for CRT Effect -->
-	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-20 pointer-events-none"></div>
-	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-20 pointer-events-none" style="animation-delay: 0.5s;"></div>
-	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-20 pointer-events-none" style="animation-delay: 1s;"></div>
-	
-	<!-- Noise Overlay -->
-	<div class="fixed inset-0 pointer-events-none bg-noise"></div>
-	
-	<div class="relative z-10 min-h-screen flex flex-col">
-		<!-- Header Section -->
-		<header bind:this={headerRef} class="px-4 py-6 sm:px-6 lg:px-8">
-			<div class="max-w-4xl mx-auto">
-				<!-- Top Border Line -->
-				<div class="h-px bg-gradient-to-r from-transparent via-gray-400 to-transparent mb-6"></div>
-				
-				<!-- Main Title -->
-				<div class="text-center space-y-2">
-					<h1 class="text-2xl sm:text-3xl lg:text-4xl font-title tracking-wider">
-						
-						<span class="mx-2 sm:mx-4 text-white">CYBER STATION</span>
-						
-					</h1>
-					<div class="text-xs sm:text-sm text-gray-400 tracking-widest font-mono">
-						REALTIME DEPARTURE MATRIX
-					</div>
-					<div class="text-xs text-gray-600 font-mono">
-						[SYSTEM.ONLINE] → ACCESSING TRANSPORT GRID
-					</div>
-				</div>
-				
-				<!-- Bottom Border Line -->
-				<div class="h-px bg-gradient-to-r from-transparent via-gray-400 to-transparent mt-6"></div>
-			</div>
-		</header>
+<div class="flex flex-col gap-24 pb-12">
+	<section
+		bind:this={heroSection}
+		class="relative overflow-hidden border border-cyan-500/30 bg-black/60 px-6 py-20 sm:rounded-none sm:px-10 sm:py-24"
+	>
+		<div class="pointer-events-none absolute inset-0 opacity-60">
+			<div
+				bind:this={morphBackground}
+				class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(14,116,144,0.45)_0%,_transparent_65%)]"
+			></div>
+			<div class="absolute inset-0 bg-grid"></div>
+		</div>
 
-		<!-- Station Search Section -->
-		<div bind:this={searchContainer} class="px-4 py-4 sm:px-6 lg:px-8 relative z-20">
-			<div class="max-w-4xl mx-auto">
-				<CollapsibleSearchSection
-					stationName={data.station}
-				/>
+		<div class="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-8 text-center">
+			<span class="text-xs uppercase tracking-[0.6em] text-cyan-200/80">Cyber Station Network</span>
+			<h1 class="text-4xl font-title uppercase tracking-[0.3em] text-white sm:text-5xl">
+				Command the ÖBB Transit Grid
+			</h1>
+			<p class="max-w-2xl text-sm text-gray-300 sm:text-base">
+				Tap into a retro-futuristic control surface for Austria's rail system. Monitor departures in real time, plot journeys with precision, and keep the network locked in your periphery vision.
+			</p>
+			<div class="flex flex-wrap items-center justify-center gap-4">
+				<Button variant="primary" size="lg" onClick={toDepartures} title="Open realtime departures">
+					Launch Departures Grid
+				</Button>
+				<Button variant="secondary" size="lg" onClick={toJourneys} title="Open journey planner">
+					Plan a Journey
+				</Button>
 			</div>
 		</div>
 
-		<!-- Station Info Section -->
-		{#if data.location}
-			<div bind:this={stationContainer} class="px-4 py-4 sm:px-6 lg:px-8 relative z-10">
-				<div class="max-w-4xl mx-auto">
-					<CollapsibleStationInfo
-						station={data.location}
-						onRefresh={refreshActions.handleManualRefresh}
-						isRefreshing={$isRefreshing}
-						lastUpdate={$lastUpdate}
-					/>
+		<div
+			bind:this={statsContainer}
+			class="relative z-10 mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+		>
+			{#each stats as stat}
+				<div
+					data-stat-card
+					class="border border-gray-800/60 bg-black/75 px-4 py-5 text-left shadow-[0_0_20px_rgba(13,148,136,0.15)]"
+				>
+					<div class="text-[11px] uppercase tracking-[0.35em] text-cyan-200/70">{stat.label}</div>
+					<div class="mt-2 font-title text-2xl text-white">{stat.value}</div>
+					<p class="mt-2 text-xs text-gray-400">{stat.subtitle}</p>
 				</div>
-			</div>
-		{/if}
+			{/each}
+		</div>
+	</section>
 
-		<!-- Error Message -->
-		{#if data.error}
-			<div class="px-4 py-4 sm:px-6 lg:px-8">
-				<div class="max-w-4xl mx-auto">
-					<ErrorMessage error={data.error} />
-				</div>
-			</div>
-		{/if}
+	<section bind:this={featureGrid} class="space-y-10">
+		<div class="flex flex-col items-center gap-3 text-center">
+			<h2 class="text-2xl font-title uppercase tracking-[0.35em] text-white sm:text-3xl">
+				Choose Your Console
+			</h2>
+			<p class="max-w-2xl text-sm text-gray-400">
+				Pick the view that matches your task: monitor departures for situational awareness or switch to the journey planner when you need a door-to-door route.
+			</p>
+		</div>
 
-		<!-- Departures Section -->
-		<div bind:this={departuresContainer} class="flex-1 px-4 py-4 sm:px-6 lg:px-8 pb-8">
-			<div class="max-w-4xl mx-auto">
-				<div class="border border-gray-700 bg-black/50 backdrop-blur-sm min-h-[50vh]">
-					<!-- Departures Header -->
-					<div class="border-b border-gray-700 px-4 py-3 bg-gray-900/30">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center space-x-3">
-								<div class="w-2 h-2 bg-blue-400 pulse-element {$isDataLoading ? 'animate-pulse' : ''}"></div>
-								<span class="text-xs sm:text-sm text-gray-400 tracking-wider font-mono">
-									DEPARTURE.MATRIX
-								</span>
-								{#if $isDataLoading}
-									<div class="h-4 w-px bg-gray-600"></div>
-									<span class="text-xs text-cyan-400 font-mono animate-pulse">
-										UPDATING...
-									</span>
-								{:else if isFiltering}
-									<div class="h-4 w-px bg-gray-600"></div>
-									<span class="text-xs text-gray-500 font-mono">
-										{filteredCount}/{totalDepartures} FILTERED
-									</span>
-								{/if}
-								{#if $hasActiveFilters}
-									<div class="h-4 w-px bg-gray-600"></div>
-									<span class="text-xs text-blue-400 font-mono">
-										{$totalActiveFilters} FILTER{$totalActiveFilters !== 1 ? 'S' : ''} ACTIVE
-									</span>
-								{/if}
-							</div>
-							
-							{#if $hasActiveFilters}
-								<button
-									on:click={filterActions.handleClearFilters}
-									class="text-xs text-gray-400 hover:text-gray-200 transition-colors duration-200 font-mono"
-									title="Clear all {$totalActiveFilters} active filter{$totalActiveFilters !== 1 ? 's' : ''}"
+		<div class="grid gap-6 md:grid-cols-2">
+			{#each features as feature}
+				<article
+					data-feature-card
+					class="relative overflow-hidden border border-gray-800/70 bg-black/70 p-6"
+				>
+					<div class="pointer-events-none absolute inset-0 border border-cyan-500/15"></div>
+					<div class="relative z-10 flex h-full flex-col gap-6">
+						<header class="space-y-2">
+							<h3 class="text-xl font-title uppercase tracking-[0.25em] text-white">
+								{feature.title}
+							</h3>
+							<p class="text-sm text-gray-300">{feature.description}</p>
+						</header>
+						<ul class="space-y-2 text-xs text-gray-400">
+							{#each feature.highlights as highlight}
+								<li class="flex items-center gap-3">
+									<span class="h-px w-10 bg-cyan-400/70"></span>
+									<span class="tracking-[0.2em] uppercase">{highlight}</span>
+								</li>
+							{/each}
+						</ul>
+						<div class="mt-auto flex flex-wrap gap-3">
+							<Button
+								variant="primary"
+								size="md"
+								onClick={feature.primaryAction.onClick}
+								title={feature.primaryAction.title}
+							>
+								{feature.primaryAction.label}
+							</Button>
+							{#if feature.secondaryAction}
+								<Button
+									variant="secondary"
+									size="md"
+									onClick={feature.secondaryAction.onClick}
+									title={feature.secondaryAction.title}
 								>
-									CLEAR.ALL.FILTERS
-								</button>
+									{feature.secondaryAction.label}
+								</Button>
 							{/if}
 						</div>
 					</div>
-					
-					<!-- Departures List -->
-					<div class="p-4">
-						<DeparturesList 
-							totalDepartures={totalDepartures}
-						/>
-					</div>
-				</div>
-			</div>
+				</article>
+			{/each}
 		</div>
-	</div>
+	</section>
+
+	<section
+		bind:this={systemStream}
+		class="relative overflow-hidden border border-gray-800/70 bg-black/60 p-6 sm:p-8"
+	>
+		<div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-cyan-500/10 to-transparent"></div>
+		<div class="relative z-10 flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+			<div class="max-w-xl space-y-3">
+				<h2 class="text-xl font-title uppercase tracking-[0.3em] text-white">
+					System Flow Diagnostics
+				</h2>
+				<p class="text-sm text-gray-400">
+					Peek under the hood. The control hub synchronises live feeds, orchestrates auto-refresh daemons, and renders journeys with cinematic clarity.
+				</p>
+			</div>
+			<ol class="grid gap-4 text-sm text-gray-300 md:w-1/2">
+				{#each timelineSteps as step}
+					<li class="border border-gray-800/70 bg-black/70 px-4 py-5">
+						<div class="flex items-center justify-between text-xs uppercase tracking-[0.4em] text-cyan-300/80">
+							<span>{step.code}</span>
+							<span>Protocol</span>
+						</div>
+						<h3 class="mt-3 font-title text-lg text-white">{step.title}</h3>
+						<p class="mt-2 text-xs text-gray-400">{step.detail}</p>
+					</li>
+				{/each}
+			</ol>
+		</div>
+	</section>
 </div>
-
-<!-- Loading Overlay for Station Search -->
-{#if $isSearching}
-	<div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-		<div class="border border-gray-700 bg-black/90 p-8 max-w-sm mx-4">
-			<div class="text-center space-y-4">
-				<LoadingSpinner size="lg" color="white" />
-				<div class="text-sm text-gray-300 tracking-wider font-mono">ACCESSING DATABASE</div>
-				<div class="text-xs text-gray-500 font-mono">CONNECTING TO TRANSPORT GRID...</div>
-			</div>
-		</div>
-	</div>
-{/if}
-
-

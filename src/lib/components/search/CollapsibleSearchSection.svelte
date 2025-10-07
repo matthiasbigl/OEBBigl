@@ -6,86 +6,105 @@
 	
 	export let stationName: string;
 	export let isCollapsed: boolean = false;
+	export let label: string = 'SEARCH.MODULE';
+	export let indicatorColor: string = 'bg-gray-500';
 	
-	// Constants
 	const MOBILE_BREAKPOINT = 768;
 	
 	let containerRef: HTMLElement;
 	let collapsibleContentRef: HTMLElement;
 	let isMobile = false;
+	let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
 	
-	/**
-	 * Checks if the current viewport is considered mobile
-	 */
 	function checkIsMobile(): boolean {
-		return window.innerWidth < MOBILE_BREAKPOINT;
+		return browser && window.innerWidth < MOBILE_BREAKPOINT;
 	}
 	
-	/**
-	 * Animates the collapsible content using our animation system
-	 */
 	function animateContent(collapsed: boolean): void {
 		if (!browser || !collapsibleContentRef) return;
 		
-		// Use our collapsible animation system
-		collapsibleAnimations.toggle(collapsibleContentRef, collapsed);
+		try {
+			collapsibleAnimations.toggle(collapsibleContentRef, collapsed);
+		} catch (error) {
+			console.error('Animation error:', error);
+		}
 	}
 	
-	// Mobile detection and default collapse state
 	onMount(() => {
-		// Check if mobile on mount
+		if (!browser) return;
+		
 		isMobile = checkIsMobile();
 		
-		// Add resize listener
 		const handleResize = (): void => {
-			isMobile = checkIsMobile();
+			if (resizeTimeout) {
+				clearTimeout(resizeTimeout);
+			}
+			resizeTimeout = setTimeout(() => {
+				isMobile = checkIsMobile();
+				resizeTimeout = null;
+			}, 150);
 		};
 		
-		window.addEventListener('resize', handleResize);
+		window.addEventListener('resize', handleResize, { passive: true });
 		
 		return () => {
 			window.removeEventListener('resize', handleResize);
+			if (resizeTimeout) {
+				clearTimeout(resizeTimeout);
+			}
 		};
 	});
 	
-	/**
-	 * Toggles the collapsed state of the search section
-	 */
 	const toggleCollapse = (): void => {
 		isCollapsed = !isCollapsed;
 		animateContent(isCollapsed);
 	};
 	
+	// React to external changes in isCollapsed
+	$: if (browser && collapsibleContentRef) {
+		animateContent(isCollapsed);
+	}
+	
 	onDestroy(() => {
-		cleanupElementAnimations([collapsibleContentRef]);
+		if (collapsibleContentRef) {
+			cleanupElementAnimations([collapsibleContentRef]);
+		}
+		if (resizeTimeout) {
+			clearTimeout(resizeTimeout);
+		}
 	});
 </script>
 
-<div bind:this={containerRef} class="border border-gray-700 bg-black/50 backdrop-blur-sm">
-	<!-- Collapsible Header -->
+<div bind:this={containerRef} class="border border-gray-700/50 bg-black/40 backdrop-blur-sm">
 	<button 
 		on:click={toggleCollapse}
-		class="w-full border-b border-gray-700 px-4 py-3 bg-gray-900/30 hover:bg-gray-800/40 transition-colors duration-200 group"
+		class="w-full border-b border-gray-700/50 px-3 py-2.5 sm:px-4 sm:py-3 bg-gray-900/20 hover:bg-gray-800/30 active:bg-gray-800/40 transition-colors duration-200 group touch-manipulation"
+		aria-expanded={!isCollapsed}
+		aria-label={isCollapsed ? `Expand ${label}` : `Collapse ${label}`}
 	>
 		<div class="flex items-center justify-between">
-			<div class="flex items-center space-x-3">
-				<div class="w-2 h-2 bg-gray-500 pulse-element"></div>
-				<span class="text-xs text-gray-400 font-mono tracking-wider">SEARCH.MODULE</span>
+			<div class="flex items-center gap-2 sm:gap-3">
+				<div class={`w-1.5 h-1.5 sm:w-2 sm:h-2 ${indicatorColor} pulse-element`}></div>
+				<span class="text-[0.65rem] sm:text-xs text-gray-400 font-mono tracking-wider">{label}</span>
 			</div>
-			<div class="flex items-center space-x-2">
-				<div class="text-gray-400 transition-transform duration-200 {isCollapsed ? '' : 'rotate-180'}">
+			<div class="flex items-center">
+				<div class="text-gray-400 transition-transform duration-300 ease-out {isCollapsed ? '' : 'rotate-180'}">
 					▼
 				</div>
 			</div>
 		</div>
 	</button>
 	
-	<!-- Collapsible Content -->
-	<div bind:this={collapsibleContentRef} class="collapsible-content {isCollapsed ? 'h-0 opacity-0 overflow-hidden' : 'h-auto opacity-100 overflow-visible'}">
-		<div class="p-4 relative">
-			<StationSearch 
-				{stationName}
-			/>
+	<div 
+		bind:this={collapsibleContentRef} 
+		class="transition-all duration-300 ease-out {isCollapsed ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-[2000px] opacity-100 overflow-visible'}"
+	>
+		<div class="p-3 sm:p-4 relative">
+			<slot>
+				<StationSearch 
+					{stationName}
+				/>
+			</slot>
 		</div>
 	</div>
 </div>

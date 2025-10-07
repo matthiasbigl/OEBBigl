@@ -3,6 +3,92 @@ import {profile as oebbProfile} from 'hafas-client/p/oebb/index.js'
 
 const client = createClient(oebbProfile, 'doddlnet@gmail.com');
 
+const DEFAULT_PRODUCTS: Record<string, boolean> = {
+	nationalExpress: true,
+	national: true,
+	interregional: true,
+	regional: true,
+	suburban: true,
+	bus: true,
+	ferry: true,
+	subway: true,
+	tram: true,
+	onCall: true
+};
+
+const sanitizeProducts = (products?: Record<string, boolean>) => {
+	if (!products) return { ...DEFAULT_PRODUCTS };
+	const normalizedEntries = Object.entries(DEFAULT_PRODUCTS).map(([key, value]) => [key, products[key] ?? value]);
+	return Object.fromEntries(normalizedEntries) as Record<string, boolean>;
+};
+
+type HafasLocation = {
+	id?: string;
+	name?: string;
+	products?: Record<string, boolean>;
+};
+
+type HafasRemark = {
+	text?: string;
+};
+
+type HafasLine = {
+	id?: string;
+	name?: string;
+	product?: string;
+};
+
+type HafasStop = {
+	id?: string;
+	name?: string;
+	arrival?: string;
+	departure?: string;
+	platform?: string;
+};
+
+type HafasStopover = {
+	stop?: HafasStop;
+	arrival?: string;
+	departure?: string;
+	platform?: string;
+};
+
+type HafasLeg = {
+	line?: HafasLine & { trainNumber?: string };
+	departure?: string;
+	departurePlatform?: string;
+	arrival?: string;
+	arrivalPlatform?: string;
+	direction?: string;
+	tripId?: string;
+	remarks?: HafasRemark[];
+	origin?: HafasStop;
+	destination?: HafasStop;
+	stopovers?: HafasStopover[];
+};
+
+type HafasJourney = {
+	id?: string;
+	legs?: HafasLeg[];
+	departure?: string;
+	arrival?: string;
+	duration?: string;
+	transfers?: number;
+	remarks?: HafasRemark[];
+};
+
+type HafasDeparture = {
+	when?: string;
+	delay?: number;
+	plannedWhen?: string;
+	platform?: string;
+	direction?: string;
+	line?: HafasLine & { trainNumber?: string };
+	tripId?: string;
+	remarks?: HafasRemark[];
+};
+
+
 export interface Departure {
 	when: string;
 	delay?: number;
@@ -68,6 +154,89 @@ export interface DepartureOptions {
 	format?: 'full' | 'minimal';
 }
 
+export interface JourneyStop {
+	id: string | null;
+	name: string | null;
+	arrival?: string | null;
+	departure?: string | null;
+	platform?: string | null;
+}
+
+export interface JourneyLeg {
+	lineName: string | null;
+	product: string | null;
+	trainNumber: string | null;
+	departure: string | null;
+	departurePlatform?: string | null;
+	arrival: string | null;
+	arrivalPlatform?: string | null;
+	direction: string | null;
+	tripId?: string | null;
+	remarks?: string[];
+	origin: JourneyStop | null;
+	destination: JourneyStop | null;
+	stopovers: JourneyStop[];
+}
+
+export interface JourneyOption {
+	id: string;
+	departure: string | null;
+	arrival: string | null;
+	durationMinutes: number;
+	transfers: number;
+	products: string[];
+	legs: JourneyLeg[];
+	remarks?: string[];
+}
+
+export interface JourneyPagination {
+	hasNextPage: boolean;
+	hasPrevPage: boolean;
+	nextToken?: string | null;
+	prevToken?: string | null;
+	currentContext?: string | null;
+	nextUrl?: string | null;
+	prevUrl?: string | null;
+	totalResults: number;
+}
+
+export interface JourneyMetadata {
+	timestamp: string;
+	totalCount: number;
+	availableProducts: string[];
+	format: 'journey-full' | 'journey-minimal';
+}
+
+export interface JourneySearchOptions {
+	when?: Date | string;
+	isArrival?: boolean;
+	includeProducts?: Record<string, boolean>;
+	products?: string[];
+	maxTransfers?: number | null;
+	results?: number;
+	context?: string | null;
+	direction?: 'next' | 'prev';
+}
+
+export interface JourneySearchResult {
+	from: string;
+	to: string;
+	fromLocation?: Station;
+	toLocation?: Station;
+	journeys: JourneyOption[];
+	pagination: JourneyPagination;
+	metadata: JourneyMetadata;
+	query: {
+		from: string;
+		to: string;
+		when: string;
+		isArrival: boolean;
+		products: string[];
+		maxTransfers: number | null;
+	};
+	error?: string;
+}
+
 /**
  * Filter departures based on product types (server-side)
  * This is used for API filtering to reduce data transfer and improve performance.
@@ -87,20 +256,92 @@ function filterDepartures(departures: Departure[], filters: string[]): Departure
 /**
  * Format departures based on the requested format
  */
-function formatDepartures(departures: Departure[], format: 'full' | 'minimal'): any[] {
+function formatDepartures(departures: Departure[], format: 'full' | 'minimal'): Departure[] {
 	if (format === 'minimal') {
-		return departures.map(dep => ({
-			line: dep.line?.name || dep.line?.id,
-			direction: dep.direction,
-			time: dep.when,
-			delay: dep.delay ? Math.floor(dep.delay / 60) : 0, // Convert to minutes
-			platform: dep.platform,
-			product: dep.line?.product,
-			tripId: dep.tripId
-		}));
+		// Placeholder for future minimal formatting support.
+		return departures.map(dep => ({ ...dep }));
 	}
 	return departures;
 }
+
+const parseDurationToMinutes = (
+	duration?: string | null,
+	departure?: string | null,
+	arrival?: string | null
+): number => {
+	if (duration) {
+		const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/i);
+		if (match) {
+			const hours = match[1] ? parseInt(match[1], 10) : 0;
+			const minutes = match[2] ? parseInt(match[2], 10) : 0;
+			return hours * 60 + minutes;
+		}
+	}
+
+	if (departure && arrival) {
+		const depDate = new Date(departure);
+		const arrDate = new Date(arrival);
+		const minutes = Math.round((arrDate.getTime() - depDate.getTime()) / 60000);
+		return minutes > 0 ? minutes : 0;
+	}
+
+	return 0;
+};
+
+const extractRemarkTexts = (remarks?: HafasRemark[]): string[] =>
+	(remarks ?? [])
+		.map(remark => remark.text)
+		.filter((text): text is string => Boolean(text));
+
+const buildJourneyId = (journey: HafasJourney, index: number): string => {
+	if (journey.id) return journey.id;
+	const fallbackParts = [
+		journey.departure ?? '',
+		journey.arrival ?? '',
+		String(index)
+	];
+	return fallbackParts.filter(Boolean).join('-') || `journey-${index}`;
+};
+
+const collectAvailableProducts = (journeys: JourneyOption[]): string[] => {
+	const productSet = new Set<string>();
+	journeys.forEach(journey => {
+		journey.products.forEach(product => {
+			if (product) {
+				productSet.add(product.toLowerCase());
+			}
+		});
+	});
+	return Array.from(productSet).sort();
+};
+
+const buildJourneyPaginationUrls = (
+	baseUrl: string | undefined,
+	queryParams: URLSearchParams,
+	pagination: JourneyPagination
+): JourneyPagination => {
+	if (!baseUrl) {
+		return pagination;
+	}
+
+	const updated: JourneyPagination = { ...pagination };
+
+	if (pagination.nextToken) {
+		const params = new URLSearchParams(queryParams);
+		params.set('direction', 'next');
+		params.set('context', pagination.nextToken);
+		updated.nextUrl = `${baseUrl}?${params.toString()}`;
+	}
+
+	if (pagination.prevToken) {
+		const params = new URLSearchParams(queryParams);
+		params.set('direction', 'prev');
+		params.set('context', pagination.prevToken);
+		updated.prevUrl = `${baseUrl}?${params.toString()}`;
+	}
+
+	return updated;
+};
 
 /**
  * Calculate pagination parameters
@@ -159,11 +400,15 @@ export async function searchStations(query: string): Promise<Station[]> {
 			addresses: false,
 			poi: false
 		});
-		
-		return locations.map((loc: any) => ({
-			id: loc.id,
-			name: loc.name,
-			products: (loc as any).products || {}
+
+		const stationLocations = Array.isArray(locations)
+			? (locations as unknown as HafasLocation[])
+			: [];
+
+		return stationLocations.map(loc => ({
+			id: loc.id ?? '',
+			name: loc.name ?? '',
+			products: loc.products ?? {}
 		}));
 	} catch (error) {
 		console.error('Error searching stations:', error);
@@ -222,7 +467,8 @@ export async function getTrainDepartures(
 			};
 		}
 
-		const station = locations[0];
+		const stationResult = locations[0];
+		const station = (stationResult ?? {}) as HafasLocation;
 
 		// Parse options with defaults
 		const when = options.when ? new Date(options.when) : new Date();
@@ -237,57 +483,50 @@ export async function getTrainDepartures(
 		// Request extra results to determine if there are more pages
 		const requestResults = pageSize * 2;
 		
-		// Default products - can be overridden
-		const defaultProducts = {
-			nationalExpress: true,
-			national: true, 
-			interregional: true,
-			regional: true,
-			suburban: true,
-			bus: true,
-			ferry: true,
-			subway: true,
-			tram: true,
-			onCall: true
-		};
-		
-		const products = options.includeProducts || defaultProducts;
+		const products = options.includeProducts ? sanitizeProducts(options.includeProducts) : { ...DEFAULT_PRODUCTS };
 
 		// 2) Get departures using hafas-client
-		const departuresResponse = await client.departures(station, {
+		const departuresResponse = await client.departures(stationResult, {
 			when: requestTime,
 			duration: Math.max(duration, pageSize * 3),
 			results: requestResults,
-			products: products,
+			products,
 			remarks: false, // Disable detailed remarks to reduce data
 			language: 'de'
 		});
 
-		// console.log('HAFAS client departures response:', JSON.stringify(departuresResponse, null, 2));
-
 		// Convert hafas-client format to our interface
-		const allDepartures = departuresResponse.departures?.map((dep: any) => {
+		const hafasDepartures = Array.isArray(departuresResponse.departures)
+			? (departuresResponse.departures as unknown as HafasDeparture[])
+			: [];
+
+		const allDepartures: Departure[] = hafasDepartures.map(dep => {
 			// Extract train name and number from format like "REX 7 (Zug-Nr. 29592)"
-			const fullName = dep.line?.name || '';
+			const fullName = dep.line?.name ?? '';
 			const trainNumberMatch = fullName.match(/\(Zug-Nr\.\s*(\d+)\)/);
 			const trainNumber = trainNumberMatch ? trainNumberMatch[1] : null;
 			const lineName = fullName.replace(/\s*\(Zug-Nr\.\s*\d+\)/, '').trim();
+			const when = dep.when ?? dep.plannedWhen ?? new Date().toISOString();
+			const tripId = dep.tripId ?? `${dep.line?.id ?? lineName}-${when}`;
 
 			return {
-				when: dep.when,
+				when,
 				delay: dep.delay || 0,
 				platform: dep.platform,
 				direction: dep.direction,
 				line: {
 					id: dep.line?.id,
 					name: lineName || dep.line?.name,
-					trainNumber: trainNumber,
+					trainNumber: trainNumber ?? undefined,
 					product: dep.line?.product
 				},
-				remarks: [],
-				tripId: dep.tripId
+				remarks: (dep.remarks ?? [])
+					.map(remark => remark.text)
+					.filter((text): text is string => Boolean(text))
+					.map(text => ({ text })),
+				tripId
 			};
-		}) || [];
+		});
 
 		// 3) Apply filtering if specified
 		const filteredDepartures = options.filter?.length 
@@ -312,8 +551,8 @@ export async function getTrainDepartures(
 		}
 
 		// 7) Build metadata
-		const availableProducts = (station as any).products 
-			? Object.keys((station as any).products).filter(p => (station as any).products?.[p]) 
+		const availableProducts = station.products 
+			? Object.keys(station.products).filter(p => station.products?.[p]) 
 			: [];
 
 		const metadata = {
@@ -332,7 +571,7 @@ export async function getTrainDepartures(
 			location: {
 				id: station.id || '',
 				name: station.name || '',
-				products: (station as any).products || {}
+				products: station.products || {}
 			},
 			pagination,
 			metadata
@@ -349,10 +588,229 @@ export async function getTrainDepartures(
 	}
 }
 
+export async function getJourneys(
+	fromQuery: string,
+	toQuery: string,
+	options: JourneySearchOptions = {},
+	baseUrl?: string
+): Promise<JourneySearchResult> {
+	const whenDate = options.when ? new Date(options.when) : new Date();
+	const normalizedProducts = options.includeProducts ? sanitizeProducts(options.includeProducts) : { ...DEFAULT_PRODUCTS };
+	const queryProducts = options.products ?? [];
+
+	const baseQuery = {
+		from: fromQuery,
+		to: toQuery,
+		when: whenDate.toISOString(),
+		isArrival: Boolean(options.isArrival),
+		products: queryProducts,
+		maxTransfers: options.maxTransfers ?? null
+	};
+
+	const emptyResult: JourneySearchResult = {
+		from: fromQuery,
+		to: toQuery,
+		journeys: [],
+		pagination: {
+			hasNextPage: false,
+			hasPrevPage: false,
+			totalResults: 0
+		},
+		metadata: {
+			timestamp: new Date().toISOString(),
+			totalCount: 0,
+			availableProducts: [],
+			format: 'journey-full'
+		},
+		query: baseQuery,
+		error: undefined
+	};
+
+	if (!fromQuery || !toQuery) {
+		emptyResult.error = 'Bitte Start- und Zielhaltestelle angeben';
+		return emptyResult;
+	}
+
+	try {
+		const [fromLocations, toLocations] = await Promise.all([
+			client.locations(fromQuery, {
+				results: 1,
+				stops: true,
+				addresses: false,
+				poi: false
+			}),
+			client.locations(toQuery, {
+				results: 1,
+				stops: true,
+				addresses: false,
+				poi: false
+			})
+		]);
+
+		const fromLocationRaw = fromLocations[0];
+		const toLocationRaw = toLocations[0];
+
+		if (!fromLocationRaw || !toLocationRaw) {
+			return {
+				...emptyResult,
+				error: 'Keine passende Haltestelle gefunden'
+			};
+		}
+
+		const fromLocation = (fromLocationRaw ?? {}) as HafasLocation;
+		const toLocation = (toLocationRaw ?? {}) as HafasLocation;
+
+		const journeyRequest: Record<string, unknown> = {
+			results: options.results ?? 6,
+			stopovers: true,
+			products: normalizedProducts,
+			transfers: options.maxTransfers ?? undefined,
+			remarks: false,
+			polylines: false,
+			language: 'de'
+		};
+
+		if (options.isArrival) {
+			journeyRequest.arrival = whenDate;
+		} else {
+			journeyRequest.departure = whenDate;
+		}
+
+		if (options.context) {
+			if (options.direction === 'next') {
+				journeyRequest.laterRef = options.context;
+			} else if (options.direction === 'prev') {
+				journeyRequest.earlierRef = options.context;
+			}
+		}
+
+		const journeysResponse = await client.journeys(fromLocationRaw, toLocationRaw, journeyRequest);
+
+		const hafasJourneys = Array.isArray(journeysResponse.journeys)
+			? (journeysResponse.journeys as unknown as HafasJourney[])
+			: [];
+
+		const mappedJourneys: JourneyOption[] = hafasJourneys.map((journey, index) => {
+			const legs: JourneyLeg[] = (journey.legs ?? []).map(leg => ({
+				lineName: leg.line?.name ?? null,
+				product: leg.line?.product ?? null,
+				trainNumber: leg.line?.trainNumber ?? null,
+				departure: leg.departure ?? null,
+				departurePlatform: leg.departurePlatform ?? leg.origin?.platform ?? null,
+				arrival: leg.arrival ?? null,
+				arrivalPlatform: leg.arrivalPlatform ?? leg.destination?.platform ?? null,
+				direction: leg.direction ?? null,
+				tripId: leg.tripId ?? null,
+				remarks: extractRemarkTexts(leg.remarks),
+				origin: {
+					id: leg.origin?.id ?? null,
+					name: leg.origin?.name ?? null,
+					arrival: leg.origin?.arrival ?? null,
+					departure: leg.origin?.departure ?? leg.departure ?? null,
+					platform: leg.origin?.platform ?? leg.departurePlatform ?? null
+				},
+				destination: {
+					id: leg.destination?.id ?? null,
+					name: leg.destination?.name ?? null,
+					arrival: leg.destination?.arrival ?? leg.arrival ?? null,
+					departure: leg.destination?.departure ?? null,
+					platform: leg.destination?.platform ?? leg.arrivalPlatform ?? null
+				},
+				stopovers: (leg.stopovers ?? []).map(stopover => ({
+					id: stopover.stop?.id ?? null,
+					name: stopover.stop?.name ?? null,
+					arrival: stopover.arrival ?? stopover.stop?.arrival ?? null,
+					departure: stopover.departure ?? stopover.stop?.departure ?? null,
+					platform: stopover.platform ?? stopover.stop?.platform ?? null
+				}))
+			}));
+
+			const departure = journey.departure ?? legs[0]?.departure ?? null;
+			const arrival = journey.arrival ?? legs[legs.length - 1]?.arrival ?? null;
+			const durationMinutes = parseDurationToMinutes(journey.duration, departure, arrival);
+			const transfers = typeof journey.transfers === 'number' ? journey.transfers : Math.max(0, legs.length - 1);
+			const products = Array.from(new Set(legs.map(leg => leg.product).filter((product): product is string => Boolean(product))));
+			const remarks = extractRemarkTexts(journey.remarks);
+
+			return {
+				id: buildJourneyId(journey, index),
+				departure,
+				arrival,
+				durationMinutes,
+				transfers,
+				products,
+				legs,
+				remarks: remarks.length ? remarks : undefined
+			};
+		});
+
+		const filteredJourneys = queryProducts.length
+			? mappedJourneys.filter(journey =>
+				journey.products.some(product => queryProducts
+					.map(p => p.toLowerCase())
+					.includes(product.toLowerCase()))
+				)
+			: mappedJourneys;
+
+		const pagination: JourneyPagination = {
+			hasNextPage: Boolean((journeysResponse as Record<string, unknown>).laterRef),
+			hasPrevPage: Boolean((journeysResponse as Record<string, unknown>).earlierRef),
+			nextToken: (journeysResponse as Record<string, unknown>).laterRef as string | undefined,
+			prevToken: (journeysResponse as Record<string, unknown>).earlierRef as string | undefined,
+			currentContext: (journeysResponse as Record<string, unknown>).context as string | undefined,
+			totalResults: filteredJourneys.length
+		};
+
+		const searchParams = new URLSearchParams();
+		searchParams.set('from', fromQuery);
+		searchParams.set('to', toQuery);
+		searchParams.set('when', whenDate.toISOString());
+		if (options.isArrival) searchParams.set('isArrival', 'true');
+		if (queryProducts.length) searchParams.set('products', queryProducts.join(','));
+		if (options.maxTransfers !== null && options.maxTransfers !== undefined) {
+			searchParams.set('maxTransfers', String(options.maxTransfers));
+		}
+
+		const paginationWithUrls = buildJourneyPaginationUrls(baseUrl, searchParams, pagination);
+		const availableProducts = collectAvailableProducts(filteredJourneys);
+
+		return {
+			from: fromQuery,
+			to: toQuery,
+			fromLocation: {
+				id: fromLocation.id ?? '',
+				name: fromLocation.name ?? fromQuery,
+				products: fromLocation.products ?? {}
+			},
+			toLocation: {
+				id: toLocation.id ?? '',
+				name: toLocation.name ?? toQuery,
+				products: toLocation.products ?? {}
+			},
+			journeys: filteredJourneys,
+			pagination: paginationWithUrls,
+			metadata: {
+				timestamp: new Date().toISOString(),
+				totalCount: filteredJourneys.length,
+				availableProducts,
+				format: 'journey-full'
+			},
+			query: baseQuery,
+			error: filteredJourneys.length === 0 ? 'Keine Verbindungen gefunden' : undefined
+		};
+	} catch (error) {
+		console.error('Error fetching journeys:', error);
+		return {
+			...emptyResult,
+			error: 'Fehler beim Laden der Verbindungen'
+		};
+	}
+}
+
 /**
  * Get arrivals for a station (if needed in the future)
  */
-export async function getTrainArrivals(stationQuery: string): Promise<TrainDeparturesResult> {
+export async function getTrainArrivals(): Promise<TrainDeparturesResult> {
 	// Similar implementation but for arrivals
 	// Could be implemented later if needed
 	throw new Error('Arrivals not implemented yet');

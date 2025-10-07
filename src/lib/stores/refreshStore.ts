@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { invalidateAll } from '$app/navigation';
 import { browser } from '$app/environment';
 
@@ -6,54 +6,83 @@ import { browser } from '$app/environment';
 export const isRefreshing = writable(false);
 export const isDataLoading = writable(false);
 export const lastUpdate = writable(new Date());
+export const refreshError = writable<string | null>(null);
 
 // Actions
 export const refreshActions = {
 	async handleManualRefresh() {
-		// Only run in browser
 		if (!browser) return;
+		
+		// Prevent concurrent refreshes
+		if (get(isRefreshing)) {
+			console.log('Refresh already in progress');
+			return;
+		}
 		
 		try {
 			isRefreshing.set(true);
 			isDataLoading.set(true);
+			refreshError.set(null);
 			
-			// Force refresh the page data
 			await invalidateAll();
 			lastUpdate.set(new Date());
 		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : 'Unknown refresh error';
 			console.error('Refresh error:', error);
+			refreshError.set(errorMessage);
+			throw error;
 		} finally {
 			isRefreshing.set(false);
-			// Note: isDataLoading is cleared in the page component when data arrives
 		}
 	},
 
-	startAutoRefresh(intervalSeconds: number = 60): ReturnType<typeof setInterval> {
-		// Only run in browser
-		if (!browser) return null as any;
+	startAutoRefresh(intervalSeconds: number = 60): ReturnType<typeof setInterval> | null {
+		if (!browser) return null;
 		
-		// Update last update time initially
+		if (intervalSeconds < 10) {
+			console.warn('Auto-refresh interval too short, setting to 10 seconds minimum');
+			intervalSeconds = 10;
+		}
+		
 		lastUpdate.set(new Date());
 		
-		return setInterval(async () => {
+		const intervalId = setInterval(async () => {
+			// Skip if manual refresh is in progress
+			if (get(isRefreshing)) {
+				console.log('Skipping auto-refresh: manual refresh in progress');
+				return;
+			}
+			
 			try {
 				isDataLoading.set(true);
+				refreshError.set(null);
 				await invalidateAll();
 				lastUpdate.set(new Date());
 			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : 'Auto-refresh error';
 				console.error('Auto refresh error:', error);
+				refreshError.set(errorMessage);
 			}
-			// Note: isDataLoading is cleared in the page component when data arrives
 		}, intervalSeconds * 1000);
+		
+		return intervalId;
 	},
 
-	stopAutoRefresh(intervalId: ReturnType<typeof setInterval>) {
+	stopAutoRefresh(intervalId: ReturnType<typeof setInterval> | null) {
 		if (intervalId && browser) {
-			clearInterval(intervalId);
+			try {
+				clearInterval(intervalId);
+			} catch (error) {
+				console.error('Error stopping auto-refresh:', error);
+			}
 		}
 	},
 
 	clearDataLoading() {
 		isDataLoading.set(false);
+	},
+
+	clearError() {
+		refreshError.set(null);
 	}
 };

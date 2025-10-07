@@ -105,6 +105,13 @@ button, input, select, textarea {
 	touch-action: manipulation;
 }
 
+/* Active state for all touchable elements */
+button:active, 
+.touch-manipulation:active {
+	transform: scale(0.98);
+	transition: transform 0.1s ease-out;
+}
+
 /* Prevent zoom on input focus for iOS */
 input[type="text"], 
 input[type="search"], 
@@ -113,7 +120,10 @@ input[type="tel"],
 input[type="url"],
 input[type="password"],
 input[type="number"],
-textarea {
+input[type="date"],
+input[type="time"],
+textarea,
+select {
 	font-size: 16px;
 }
 
@@ -125,8 +135,18 @@ textarea {
 	input[type="url"],
 	input[type="password"],
 	input[type="number"],
-	textarea {
+	input[type="date"],
+	input[type="time"],
+	textarea,
+	select {
 		font-size: 16px !important;
+	}
+}
+
+/* Better mobile scrolling */
+@media (max-width: 768px) {
+	* {
+		-webkit-overflow-scrolling: touch;
 	}
 }
 
