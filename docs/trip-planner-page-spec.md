@@ -1,7 +1,5 @@
 # Trip Planner Page Specification
 
-Version: 2025-10-07
-Author: GitHub Copilot (AI dev partner)
 
 ## 1. Purpose & Scope
 
