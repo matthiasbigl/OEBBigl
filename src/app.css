@@ -17,6 +17,33 @@ html, body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+/* Enhanced focus indicators for accessibility */
+*:focus-visible {
+	outline: 2px solid #22d3ee;
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+/* Ensure skip links are always accessible */
+.sr-only:focus-within {
+	position: absolute;
+	left: 1rem;
+	top: 1rem;
+	z-index: 9999;
+}
+
+/* Improve button focus states */
+button:focus-visible {
+	outline: 2px solid #22d3ee;
+	outline-offset: 2px;
+}
+
+/* Improve link focus states */
+a:focus-visible {
+	outline: 2px solid #22d3ee;
+	outline-offset: 2px;
+}
+
 /* Grid background pattern */
 .bg-grid {
 	background-image: 

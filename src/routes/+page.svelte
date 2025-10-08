@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import Button from '$lib/components/ui/Button.svelte';
 	import {
 		createFadeInAnimation,
@@ -19,21 +18,40 @@
 
 	let cleanupFns: CleanupFn[] = [];
 
-	const toDepartures = () => {
-		void goto('/departures');
-	};
-
-	const toJourneys = () => {
-		void goto('/journeys');
-	};
-
 	const docsUrl = 'https://github.com/matthiasbigl/OEBBigl/blob/main/docs/trip-planner-page-spec.md';
 
-	const openDocs = () => {
-		if (browser) {
-			window.open(docsUrl, '_blank', 'noopener,noreferrer');
-		} else {
-			void goto(docsUrl);
+	// SEO metadata
+	const siteTitle = 'Cyber Station Control Hub - ÖBB Transit Grid';
+	const siteDescription = 'Command Austria\'s rail system with real-time departures, journey planning, and live HAFAS integration. Monitor platforms, plot routes, and navigate the ÖBB network with precision.';
+	const siteUrl = $page.url.origin;
+	const ogImage = `${siteUrl}/og-image.png`; // You'll need to create this
+	
+	const structuredData = {
+		'@context': 'https://schema.org',
+		'@type': 'WebApplication',
+		name: 'Cyber Station Control Hub',
+		applicationCategory: 'Travel & Transportation',
+		operatingSystem: 'Web Browser',
+		description: siteDescription,
+		url: siteUrl,
+		offers: {
+			'@type': 'Offer',
+			price: '0',
+			priceCurrency: 'EUR'
+		},
+		featureList: [
+			'Real-time departure monitoring',
+			'Journey planning and route optimization',
+			'Platform and product filtering',
+			'Auto-refresh every 60 seconds',
+			'Mobile and desktop responsive design'
+		],
+		audience: {
+			'@type': 'Audience',
+			geographicArea: {
+				'@type': 'Country',
+				name: 'Austria'
+			}
 		}
 	};
 
@@ -60,18 +78,17 @@
 		}
 	] as const;
 
-	interface FeatureAction {
-		label: string;
-		title: string;
-		onClick: () => void;
-	}
-
 	interface FeatureCard {
 		title: string;
 		description: string;
 		highlights: string[];
-		primaryAction: FeatureAction;
-		secondaryAction?: FeatureAction;
+		primaryHref: string;
+		primaryLabel: string;
+		primaryTitle: string;
+		secondaryHref?: string;
+		secondaryLabel?: string;
+		secondaryTitle?: string;
+		isExternal?: boolean;
 	}
 
 	const features: FeatureCard[] = [
@@ -84,11 +101,9 @@
 				'Auto-refresh with telemetry pulses',
 				'Collapsible info panels built for focus'
 			],
-			primaryAction: {
-				label: 'Launch Departures',
-				title: 'Open the realtime departures control board',
-				onClick: toDepartures
-			}
+			primaryHref: '/departures',
+			primaryLabel: 'Launch Departures',
+			primaryTitle: 'Open the realtime departures control board'
 		},
 		{
 			title: 'Journey Planning Console',
@@ -99,16 +114,13 @@
 				'Timeline view for each journey leg',
 				'Pagination-ready HAFAS integration'
 			],
-			primaryAction: {
-				label: 'Open Trip Planner',
-				title: 'Navigate to the journey planning interface',
-				onClick: toJourneys
-			},
-			secondaryAction: {
-				label: 'View Docs',
-				title: 'Read the journey planner design brief',
-				onClick: openDocs
-			}
+			primaryHref: '/journeys',
+			primaryLabel: 'Open Trip Planner',
+			primaryTitle: 'Navigate to the journey planning interface',
+			secondaryHref: docsUrl,
+			secondaryLabel: 'View Docs',
+			secondaryTitle: 'Read the journey planner design brief',
+			isExternal: true
 		}
 	];
 
@@ -131,8 +143,6 @@
 	] as const;
 
 	onMount(() => {
-		if (!browser) return;
-
 		const localCleanups: CleanupFn[] = [];
 
 		if (heroSection) {
@@ -181,11 +191,30 @@
 </script>
 
 <svelte:head>
-	<title>Cyber Station Control Hub</title>
-	<meta
-		name="description"
-		content="Command the ÖBB cyber station experience with a cinematic landing page guiding you to departures and journey planning."
-	/>
+	<title>{siteTitle}</title>
+	<meta name="description" content={siteDescription} />
+	<meta name="keywords" content="ÖBB, Austria rail, train departures, journey planner, HAFAS, real-time transit, rail network, Austria transport" />
+	<meta name="author" content="Cyber Station Network" />
+	<html lang="en" />
+	
+	<!-- Open Graph / Facebook -->
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content={siteUrl} />
+	<meta property="og:title" content={siteTitle} />
+	<meta property="og:description" content={siteDescription} />
+	<meta property="og:image" content={ogImage} />
+	<meta property="og:locale" content="en_US" />
+	<meta property="og:site_name" content="Cyber Station Control Hub" />
+	
+	<!-- Twitter -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:url" content={siteUrl} />
+	<meta name="twitter:title" content={siteTitle} />
+	<meta name="twitter:description" content={siteDescription} />
+	<meta name="twitter:image" content={ogImage} />
+	
+	<!-- Structured Data -->
+	{@html `<script type="application/ld+json">${JSON.stringify(structuredData)}</script>`}
 </svelte:head>
 
 <div class="flex flex-col gap-24 pb-12">
@@ -210,12 +239,16 @@
 				Tap into a retro-futuristic control surface for Austria's rail system. Monitor departures in real time, plot journeys with precision, and keep the network locked in your periphery vision.
 			</p>
 			<div class="flex flex-wrap items-center justify-center gap-4">
-				<Button variant="primary" size="lg" onClick={toDepartures} title="Open realtime departures">
-					Launch Departures Grid
-				</Button>
-				<Button variant="secondary" size="lg" onClick={toJourneys} title="Open journey planner">
-					Plan a Journey
-				</Button>
+				<a href="/departures" data-sveltekit-preload-data="hover">
+					<Button variant="primary" size="lg" title="Open realtime departures">
+						Launch Departures Grid
+					</Button>
+				</a>
+				<a href="/journeys" data-sveltekit-preload-data="hover">
+					<Button variant="secondary" size="lg" title="Open journey planner">
+						Plan a Journey
+					</Button>
+				</a>
 			</div>
 		</div>
 
@@ -269,23 +302,31 @@
 							{/each}
 						</ul>
 						<div class="mt-auto flex flex-wrap gap-3">
-							<Button
-								variant="primary"
-								size="md"
-								onClick={feature.primaryAction.onClick}
-								title={feature.primaryAction.title}
+							<a 
+								href={feature.primaryHref} 
+								data-sveltekit-preload-data="hover"
 							>
-								{feature.primaryAction.label}
-							</Button>
-							{#if feature.secondaryAction}
 								<Button
-									variant="secondary"
+									variant="primary"
 									size="md"
-									onClick={feature.secondaryAction.onClick}
-									title={feature.secondaryAction.title}
+									title={feature.primaryTitle}
 								>
-									{feature.secondaryAction.label}
+									{feature.primaryLabel}
 								</Button>
+							</a>
+							{#if feature.secondaryHref}
+								<a 
+									href={feature.secondaryHref}
+									{...(feature.isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : { 'data-sveltekit-preload-data': 'hover' })}
+								>
+									<Button
+										variant="secondary"
+										size="md"
+										title={feature.secondaryTitle}
+									>
+										{feature.secondaryLabel}
+									</Button>
+								</a>
 							{/if}
 						</div>
 					</div>

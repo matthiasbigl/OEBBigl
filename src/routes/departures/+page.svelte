@@ -149,11 +149,40 @@
 </script>
 
 <svelte:head>
-	<title>◾ CYBER STATION ◾</title>
+	<title>Real-time Train Departures - ÖBB Cyber Station</title>
+	<meta name="description" content="Monitor live train departures across Austria's rail network. Filter by platform and product type with auto-refresh every 60 seconds. Powered by ÖBB HAFAS." />
+	<meta name="keywords" content="train departures, ÖBB departures, real-time trains, Austria rail, platform filter" />
+	<meta name="author" content="Cyber Station Network" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 	<meta name="theme-color" content="#000000">
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<link rel="canonical" href="https://oebbigl.vercel.app/departures" />
+	<!-- Open Graph / Facebook -->
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://oebbigl.vercel.app/departures" />
+	<meta property="og:title" content="Real-time Train Departures - ÖBB Cyber Station" />
+	<meta property="og:description" content="Monitor live train departures across Austria's rail network. Filter by platform and product type with auto-refresh every 60 seconds. Powered by ÖBB HAFAS." />
+	<meta property="og:image" content="/og-image.png" />
+	<meta property="og:locale" content="en_US" />
+	<meta property="og:site_name" content="Cyber Station Control Hub" />
+	<!-- Twitter -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:url" content="https://oebbigl.vercel.app/departures" />
+	<meta name="twitter:title" content="Real-time Train Departures - ÖBB Cyber Station" />
+	<meta name="twitter:description" content="Monitor live train departures across Austria's rail network. Filter by platform and product type with auto-refresh every 60 seconds. Powered by ÖBB HAFAS." />
+	<meta name="twitter:image" content="/og-image.png" />
+	<!-- Structured Data -->
+	{@html `<script type="application/ld+json">${JSON.stringify({
+		'@context': 'https://schema.org',
+		'@type': 'WebPage',
+		name: 'Real-time Train Departures - ÖBB Cyber Station',
+		description: 'Monitor live train departures across Austria\'s rail network. Filter by platform and product type with auto-refresh every 60 seconds. Powered by ÖBB HAFAS.',
+		url: 'https://oebbigl.vercel.app/departures',
+		keywords: 'train departures, ÖBB departures, real-time trains, Austria rail, platform filter',
+		inLanguage: 'en',
+		isPartOf: 'https://oebbigl.vercel.app/'
+	})}</script>`}
 </svelte:head>
 
 <!-- Main Container with Retro-Futuristic Background -->
@@ -173,6 +202,28 @@
 	<div class="fixed inset-0 pointer-events-none bg-noise"></div>
 	
 	<div class="relative z-10 min-h-screen flex flex-col">
+		<!-- Skip Navigation Links -->
+		<div class="sr-only focus-within:not-sr-only focus-within:absolute focus-within:left-4 focus-within:top-4 focus-within:z-50 focus-within:flex focus-within:gap-2">
+			<a
+				href="#search-section"
+				class="bg-cyan-400 px-4 py-2 text-black font-bold hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-600"
+			>
+				Skip to station search
+			</a>
+			<a
+				href="#filters-section"
+				class="bg-cyan-400 px-4 py-2 text-black font-bold hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-600"
+			>
+				Skip to filters
+			</a>
+			<a
+				href="#departures-section"
+				class="bg-cyan-400 px-4 py-2 text-black font-bold hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-600"
+			>
+				Skip to departures
+			</a>
+		</div>
+		
 		<!-- Header Section -->
 		<header bind:this={headerRef} class="px-4 py-6 sm:px-6 lg:px-8">
 			<div class="max-w-4xl mx-auto">
@@ -200,7 +251,7 @@
 		</header>
 
 		<!-- Station Search Section -->
-		<div bind:this={searchContainer} class="px-4 py-4 sm:px-6 lg:px-8 relative z-20">
+		<div id="search-section" bind:this={searchContainer} class="px-4 py-4 sm:px-6 lg:px-8 relative z-20">
 			<div class="max-w-4xl mx-auto">
 				<CollapsibleSearchSection
 					stationName={data.station}
@@ -210,7 +261,7 @@
 
 		<!-- Station Info Section -->
 		{#if data.location}
-			<div bind:this={stationContainer} class="px-4 py-4 sm:px-6 lg:px-8 relative z-10">
+			<div id="filters-section" bind:this={stationContainer} class="px-4 py-4 sm:px-6 lg:px-8 relative z-10">
 				<div class="max-w-4xl mx-auto">
 					<CollapsibleStationInfo
 						station={data.location}
@@ -232,55 +283,60 @@
 		{/if}
 
 		<!-- Departures Section -->
-		<div bind:this={departuresContainer} class="flex-1 px-4 py-4 sm:px-6 lg:px-8 pb-8">
+		<div id="departures-section" bind:this={departuresContainer} class="flex-1 px-4 py-4 sm:px-6 lg:px-8 pb-8">
 			<div class="max-w-4xl mx-auto">
-				<div class="border border-gray-700 bg-black/50 backdrop-blur-sm min-h-[50vh]">
-					<!-- Departures Header -->
-					<div class="border-b border-gray-700 px-4 py-3 bg-gray-900/30">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center space-x-3">
-								<div class="w-2 h-2 bg-blue-400 pulse-element {$isDataLoading ? 'animate-pulse' : ''}"></div>
-								<span class="text-xs sm:text-sm text-gray-400 tracking-wider font-mono">
-									DEPARTURE.MATRIX
-								</span>
-								{#if $isDataLoading}
-									<div class="h-4 w-px bg-gray-600"></div>
-									<span class="text-xs text-cyan-400 font-mono animate-pulse">
-										UPDATING...
-									</span>
-								{:else if isFiltering}
-									<div class="h-4 w-px bg-gray-600"></div>
-									<span class="text-xs text-gray-500 font-mono">
-										{filteredCount}/{totalDepartures} FILTERED
-									</span>
-								{/if}
-								{#if $hasActiveFilters}
-									<div class="h-4 w-px bg-gray-600"></div>
-									<span class="text-xs text-blue-400 font-mono">
-										{$totalActiveFilters} FILTER{$totalActiveFilters !== 1 ? 'S' : ''} ACTIVE
-									</span>
-								{/if}
-							</div>
-							
-							{#if $hasActiveFilters}
-								<button
-									on:click={filterActions.handleClearFilters}
-									class="text-xs text-gray-400 hover:text-gray-200 transition-colors duration-200 font-mono"
-									title="Clear all {$totalActiveFilters} active filter{$totalActiveFilters !== 1 ? 's' : ''}"
-								>
-									CLEAR.ALL.FILTERS
-								</button>
-							{/if}
-						</div>
-					</div>
-					
-					<!-- Departures List -->
-					<div class="p-4">
-						<DeparturesList 
-							totalDepartures={totalDepartures}
-						/>
-					</div>
-				</div>
+			<div class="border border-gray-700 bg-black/50 backdrop-blur-sm min-h-[50vh]">
+			<!-- Departures Header -->
+			<div class="border-b border-gray-700 px-4 py-3 bg-gray-900/30">
+			<div class="flex items-center justify-between">
+			<div class="flex items-center space-x-3">
+			<div class="w-2 h-2 bg-blue-400 pulse-element {$isDataLoading ? 'animate-pulse' : ''}"></div>
+			<span class="text-xs sm:text-sm text-gray-400 tracking-wider font-mono">
+			 DEPARTURE.MATRIX
+			</span>
+			{#if $isDataLoading}
+			<div class="h-4 w-px bg-gray-600"></div>
+			<span class="text-xs text-cyan-400 font-mono animate-pulse">
+			 UPDATING...
+			</span>
+			{:else if isFiltering}
+			<div class="h-4 w-px bg-gray-600"></div>
+			<span class="text-xs text-gray-500 font-mono">
+			 {filteredCount}/{totalDepartures} FILTERED
+			</span>
+			{/if}
+			{#if $hasActiveFilters}
+			<div class="h-4 w-px bg-gray-600"></div>
+			<span class="text-xs text-blue-400 font-mono">
+			 {$totalActiveFilters} FILTER{$totalActiveFilters !== 1 ? 'S' : ''} ACTIVE
+			</span>
+			{/if}
+			</div>
+
+			<!-- Accessibility: aria-live region for auto-refresh -->
+			<div aria-live="polite" aria-atomic="true" class="sr-only">
+			 Departures updated at {$lastUpdate}
+			</div>
+
+			{#if $hasActiveFilters}
+			<button
+			 on:click={filterActions.handleClearFilters}
+			 class="text-xs text-gray-400 hover:text-gray-200 transition-colors duration-200 font-mono"
+			 title="Clear all {$totalActiveFilters} active filter{$totalActiveFilters !== 1 ? 's' : ''}"
+			>
+			 CLEAR.ALL.FILTERS
+			</button>
+			{/if}
+			</div>
+			</div>
+
+			<!-- Departures List -->
+			<div class="p-4">
+			<DeparturesList 
+			 totalDepartures={totalDepartures}
+			/>
+			</div>
+			</div>
 			</div>
 		</div>
 	</div>

@@ -6,29 +6,22 @@
 	import '$lib/utils/selfHostedFonts';
 	import { page } from '$app/stores';
 	import { afterNavigate } from '$app/navigation';
-	import { onDestroy } from 'svelte';
 
 	let { children } = $props();
-	let isMenuOpen = false;
+	let isMenuOpen = $state(false);
+	let menuButton: HTMLButtonElement;
+	let mobileNav: HTMLElement;
 
 	const navLinks = [
 		{ href: '/', label: 'Overview' },
 		{ href: '/departures', label: 'Realtime Departures' },
 		{ href: '/journeys', label: 'Trip Planner' }
-	];
+	] as const;
 
 	const currentYear = new Date().getFullYear();
-	let currentPath = '';
-
-	const unsubscribe = page.subscribe(($page) => {
-		currentPath = $page.url.pathname;
-	});
-
-	onDestroy(() => {
-		unsubscribe();
-	});
 
 	function isActive(href: string): boolean {
+		const currentPath = $page.url.pathname;
 		if (href === '/') {
 			return currentPath === '/';
 		}
@@ -52,20 +45,42 @@
 	}
 
 	const handleKeyDown = (event: KeyboardEvent) => {
-		if (event.key === 'Escape') {
+		if (event.key === 'Escape' && isMenuOpen) {
 			isMenuOpen = false;
+			// Return focus to menu button
+			setTimeout(() => menuButton?.focus(), 0);
+		}
+	};
+
+	const toggleMenu = () => {
+		isMenuOpen = !isMenuOpen;
+		if (isMenuOpen) {
+			// Focus first link when menu opens
+			setTimeout(() => {
+				const firstLink = mobileNav?.querySelector('a') as HTMLAnchorElement;
+				firstLink?.focus();
+			}, 0);
 		}
 	};
 
 	afterNavigate(() => {
+		const wasOpen = isMenuOpen;
 		isMenuOpen = false;
+		// Return focus to menu button after navigation if menu was open
+		if (wasOpen) {
+			setTimeout(() => menuButton?.focus(), 0);
+		}
 	});
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
 
 <svelte:head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="theme-color" content="#000000" />
 	<link rel="icon" href={favicon} />
+	<link rel="canonical" href={$page.url.origin + $page.url.pathname} />
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
 </svelte:head>
 
 <!-- Use self-hosted fonts for better performance -->
@@ -79,16 +94,25 @@
 	<div class="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-cyan-500/30 via-transparent to-transparent blur-3xl opacity-60"></div>
 
 	<div class="relative z-10 flex min-h-screen flex-col">
-		<a
-			href="#main-content"
-			class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-cyan-400 focus:px-4 focus:py-2 focus:text-black"
-		>
-			Skip to main content
-		</a>
+		<!-- Skip Navigation Links -->
+		<div class="sr-only focus-within:not-sr-only focus-within:absolute focus-within:left-4 focus-within:top-4 focus-within:z-50 focus-within:flex focus-within:gap-2">
+			<a
+				href="#main-content"
+				class="bg-cyan-400 px-4 py-2 text-black font-bold hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-600"
+			>
+				Skip to main content
+			</a>
+			<a
+				href="#navigation"
+				class="bg-cyan-400 px-4 py-2 text-black font-bold hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-600"
+			>
+				Skip to navigation
+			</a>
+		</div>
 
-		<header class="border-b border-gray-800/80 bg-black/70 backdrop-blur">
+		<header id="navigation" class="border-b border-gray-800/80 bg-black/70 backdrop-blur">
 			<div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-				<a href="/" class="flex items-center gap-3" data-sveltekit-prefetch>
+				<a href="/" class="flex items-center gap-3" data-sveltekit-preload-data="hover">
 					<span class="grid h-10 w-10 place-items-center rounded-full border border-cyan-400/40 bg-cyan-500/10 font-title text-lg text-cyan-200">
 						ÖBB
 					</span>
@@ -103,7 +127,7 @@
 						<a
 							href={link.href}
 							class={desktopLinkClasses(link.href)}
-							data-sveltekit-prefetch
+							data-sveltekit-preload-data="hover"
 							aria-current={isActive(link.href) ? 'page' : undefined}
 						>
 							<span>{link.label}</span>
@@ -112,9 +136,10 @@
 				</nav>
 
 				<button
+					bind:this={menuButton}
 					type="button"
 					class="md:hidden inline-flex items-center justify-center rounded-sm border border-cyan-500/40 bg-black/60 px-3 py-2 text-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
-					on:click={() => (isMenuOpen = !isMenuOpen)}
+					onclick={toggleMenu}
 					aria-expanded={isMenuOpen}
 					aria-controls="mobile-navigation"
 					title="Toggle navigation"
@@ -134,6 +159,7 @@
 
 			{#if isMenuOpen}
 				<nav
+					bind:this={mobileNav}
 					id="mobile-navigation"
 					class="md:hidden border-t border-gray-800/70 bg-black/90 backdrop-blur"
 					aria-label="Primary"
@@ -144,9 +170,8 @@
 								<a
 									href={link.href}
 									class={mobileLinkClasses(link.href)}
-									data-sveltekit-prefetch
+									data-sveltekit-preload-data="tap"
 									aria-current={isActive(link.href) ? 'page' : undefined}
-									on:click={() => (isMenuOpen = false)}
 								>
 									{link.label}
 								</a>
