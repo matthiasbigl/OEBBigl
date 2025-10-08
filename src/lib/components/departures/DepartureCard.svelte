@@ -47,16 +47,16 @@
 </script>
 
 
-<div bind:this={cardRef} class="border border-gray-700 bg-black/40 backdrop-blur-sm hover:border-gray-500 transition-all duration-300 cursor-pointer group">
+<div bind:this={cardRef} class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-black/60 hover:border-gray-300 dark:hover:border-gray-500 transition-all duration-300 cursor-pointer group shadow-sm">
 	<!-- Header with Terminal Style -->
-	<div class="border-b border-gray-700 px-4 py-2 bg-gray-900/20">
+	<div class="border-b border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-100 dark:bg-gray-900/30">
 		<div class="flex items-center justify-between">
 			<!-- Transport Line -->
 			<div class="flex items-center space-x-5">
-				<div class="w-8 h-8 bg-gray-800 border border-gray-600 flex items-center justify-center text-xs font-bold text-white group-hover:bg-gray-700 transition-colors duration-200 text-center text-ellipsis overflow-hidden ">
+				<div class="w-8 h-8 bg-gray-200 dark:bg-gray-800 border border-gray-400 dark:border-gray-600 flex items-center justify-center text-xs font-bold text-gray-900 dark:text-white group-hover:bg-gray-300 dark:group-hover:bg-gray-700 transition-colors duration-200 text-center text-ellipsis overflow-hidden ">
 					{departure.line?.name || departure.line?.id || '?'}
 				</div>
-				<div class="text-xs text-gray-400 font-mono tracking-wider">
+				<div class="text-xs text-gray-600 dark:text-gray-400 font-mono tracking-wider">
 					{departure.line?.product?.toUpperCase() || 'TRANSPORT'}
 				</div>
 			</div>
@@ -64,7 +64,7 @@
 			<!-- Status Indicator -->
 			<div class="flex items-center space-x-2 text-xs">
 				<div class="w-2 h-2 {getDelayColor(departure.delay)} {getStatusIcon(departure.delay)}"></div>
-				<span class="text-gray-400 font-mono">
+				<span class="text-gray-600 dark:text-gray-400 font-mono">
 					{departure.delay ? 'DELAYED' : 'ON.TIME'}
 				</span>
 			</div>
@@ -76,13 +76,13 @@
 		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
 			<!-- Destination & Platform -->
 			<div class="flex-1 min-w-0">
-				<h3 class="text-lg font-bold text-white font-mono truncate group-hover:text-gray-200 transition-colors duration-200">
+				<h3 class="text-lg font-bold text-gray-900 dark:text-white font-mono truncate group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors duration-200">
 					{departure.direction || 'UNKNOWN DESTINATION'}
 				</h3>
-				<div class="flex items-center space-x-4 mt-1 text-xs text-gray-400">
+				<div class="flex items-center space-x-4 mt-1 text-xs text-gray-600 dark:text-gray-400">
 					<span class="font-mono">PLATFORM: {departure.platform || 'TBA'}</span>
 					{#if departure.line?.trainNumber}
-						<span class="text-gray-500">|</span>
+						<span class="text-gray-500 dark:text-gray-500">|</span>
 						<span class="font-mono">#{departure.line.trainNumber}</span>
 					{/if}
 				</div>
@@ -104,14 +104,14 @@
 
 	<!-- Remarks/Alerts -->
 	{#if departure.remarks && departure.remarks.length > 0}
-		<div class="border-t border-gray-700 px-4 py-3 bg-gray-900/10">
+		<div class="border-t border-gray-300 dark:border-gray-700 px-4 py-3 bg-gray-100/10 dark:bg-gray-900/10">
 			<div class="flex items-center space-x-2 mb-2">
-				<div class="w-1 h-1 bg-orange-400 animate-pulse"></div>
-				<span class="text-xs text-gray-400 font-mono tracking-wider">ALERTS</span>
+				<div class="w-1 h-1 bg-orange-400 dark:bg-orange-400 animate-pulse"></div>
+				<span class="text-xs text-gray-600 dark:text-gray-400 font-mono tracking-wider">ALERTS</span>
 			</div>
 			<div class="space-y-1">
 				{#each departure.remarks as remark}
-					<div class="text-xs text-orange-300 font-mono bg-orange-900/20 border-l-2 border-orange-600 pl-3 py-1">
+					<div class="text-xs text-orange-700 dark:text-orange-300 font-mono bg-orange-100/20 dark:bg-orange-900/20 border-l-2 border-orange-600 dark:border-orange-600 pl-3 py-1">
 						{remark.text}
 					</div>
 				{/each}

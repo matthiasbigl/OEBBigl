@@ -25,7 +25,7 @@
 	
 	<!-- Filter Status Summary (hidden from screen readers since it's redundant) -->
 	{#if $totalActiveFilters > 0}
-		<div class="text-xs text-gray-400 font-mono text-center" aria-hidden="true">
+		<div class="text-xs text-gray-600 dark:text-gray-400 font-mono text-center" aria-hidden="true">
 			{$totalActiveFilters} ACTIVE FILTER{$totalActiveFilters !== 1 ? 'S' : ''}
 		</div>
 	{/if}

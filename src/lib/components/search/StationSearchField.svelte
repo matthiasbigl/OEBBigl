@@ -206,14 +206,14 @@
 	});
 </script>
 
-<div class="space-y-2">
+	<div class="space-y-2">
 	{#if label}
-		<div class="text-xs text-gray-500 font-mono tracking-wider uppercase">{label}</div>
+		<div class="text-xs text-gray-500 dark:text-gray-500 font-mono tracking-wider uppercase">{label}</div>
 	{/if}
 
 	<div class="relative">
 		{#if showPrompt}
-			<div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-mono text-sm pointer-events-none z-10">
+			<div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400 font-mono text-sm pointer-events-none z-10">
 				{prompt}
 			</div>
 		{/if}
@@ -230,7 +230,7 @@
 			placeholder={placeholder}
 			disabled={disabled}
 			autocomplete="off"
-			class="w-full pl-12 pr-4 py-3 bg-black/60 border border-gray-600 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-all duration-200 font-mono text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+			class="w-full pl-12 pr-4 py-3 bg-white dark:bg-black/70 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 dark:focus:border-cyan-400 transition-all duration-200 font-mono text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
 			role="combobox"
 			aria-expanded={showSuggestionList}
 			aria-haspopup="listbox"

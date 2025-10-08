@@ -2,9 +2,10 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import FontLoader from '$lib/components/FontLoader.svelte';
+	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
 	// Import critical self-hosted fonts immediately
 	import '$lib/utils/selfHostedFonts';
-	import { page } from '$app/stores';
+	import { page, navigating } from '$app/state';
 	import { afterNavigate } from '$app/navigation';
 
 	let { children } = $props();
@@ -21,7 +22,7 @@
 	const currentYear = new Date().getFullYear();
 
 	function isActive(href: string): boolean {
-		const currentPath = $page.url.pathname;
+		const currentPath = page.url.pathname;
 		if (href === '/') {
 			return currentPath === '/';
 		}
@@ -79,7 +80,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<meta name="theme-color" content="#000000" />
 	<link rel="icon" href={favicon} />
-	<link rel="canonical" href={$page.url.origin + $page.url.pathname} />
+	<link rel="canonical" href={page.url.origin + page.url.pathname} />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 </svelte:head>
 
@@ -183,8 +184,17 @@
 		</header>
 
 		<main id="main-content" class="relative flex-1">
-			<div class="relative z-10 mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-				{@render children?.()}
+			<div class="relative z-10 mx-auto w-full max-w-6xl px-2 pb-16 pt-4 sm:px-4 lg:px-6">
+				{#if navigating.to}
+					<div class="flex flex-col items-center justify-center min-h-[400px] gap-4">
+						<LoadingSpinner size="lg" color="white" />
+						<p class="text-sm uppercase tracking-[0.3em] text-gray-400 animate-pulse">
+							Loading...
+						</p>
+					</div>
+				{:else}
+					{@render children?.()}
+				{/if}
 			</div>
 		</main>
 

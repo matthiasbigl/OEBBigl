@@ -49,12 +49,12 @@ export const ANIMATION_CONFIG = {
 } as const;
 
 export interface AnimationElements {
-	pageContainer: HTMLElement;
+	pageContainer?: HTMLElement;
 	headerRef: HTMLElement;
-	gridBackground: HTMLElement;
+	gridBackground?: HTMLElement;
 	searchContainer: HTMLElement;
-	stationContainer: HTMLElement;
-	departuresContainer: HTMLElement;
+	stationContainer?: HTMLElement;
+	departuresContainer?: HTMLElement;
 }
 
 export interface AnimationController {
@@ -177,11 +177,12 @@ export function createPageAnimations(elements: AnimationElements): AnimationCont
 	}
 	
 	/**
-	 * Sets up scroll-based parallax effect
+	 * Sets up scroll-based parallax effect (optional - only if gridBackground is provided)
 	 */
 	function setupParallaxEffect(): void {
 		const { pageContainer, gridBackground } = elements;
 		
+		// Skip parallax if no background element is provided
 		if (!gridBackground || !pageContainer) return;
 		
 		const scrollTrigger = ScrollTrigger.create({
@@ -612,7 +613,7 @@ export function createBatchAnimation(
 ): gsap.core.Timeline {
 	const masterTimeline = gsap.timeline();
 	
-	batches.forEach(({ elements, animation, delay = 0, stagger = 0 }, index) => {
+	batches.forEach(({ elements, animation, delay = 0, stagger = 0 }) => {
 		const batchTimeline = gsap.timeline();
 		
 		batchTimeline.fromTo(elements, {

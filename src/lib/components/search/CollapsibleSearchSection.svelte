@@ -75,20 +75,20 @@
 	});
 </script>
 
-<div bind:this={containerRef} class="border border-gray-700/50 bg-black/40 backdrop-blur-sm">
+	<div bind:this={containerRef} class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-black/70 shadow-sm">
 	<button 
 		on:click={toggleCollapse}
-		class="w-full border-b border-gray-700/50 px-3 py-2.5 sm:px-4 sm:py-3 bg-gray-900/20 hover:bg-gray-800/30 active:bg-gray-800/40 transition-colors duration-200 group touch-manipulation"
+		class="w-full border-b border-gray-300/50 dark:border-gray-700/50 px-3 py-2.5 sm:px-4 sm:py-3 bg-gray-100/20 dark:bg-gray-900/20 hover:bg-gray-200/30 dark:hover:bg-gray-800/30 active:bg-gray-200/40 dark:active:bg-gray-800/40 transition-colors duration-200 group touch-manipulation"
 		aria-expanded={!isCollapsed}
 		aria-label={isCollapsed ? `Expand ${label}` : `Collapse ${label}`}
 	>
-		<div class="flex items-center justify-between">
+			<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2 sm:gap-3">
 				<div class={`w-1.5 h-1.5 sm:w-2 sm:h-2 ${indicatorColor} pulse-element`}></div>
-				<span class="text-[0.65rem] sm:text-xs text-gray-400 font-mono tracking-wider">{label}</span>
+				<span class="text-[0.65rem] sm:text-xs text-gray-600 dark:text-gray-400 font-mono tracking-wider">{label}</span>
 			</div>
 			<div class="flex items-center">
-				<div class="text-gray-400 transition-transform duration-300 ease-out {isCollapsed ? '' : 'rotate-180'}">
+				<div class="text-gray-600 dark:text-gray-400 transition-transform duration-300 ease-out {isCollapsed ? '' : 'rotate-180'}">
 					▼
 				</div>
 			</div>
@@ -97,7 +97,7 @@
 	
 	<div 
 		bind:this={collapsibleContentRef} 
-		class="transition-all duration-300 ease-out {isCollapsed ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-[2000px] opacity-100 overflow-visible'}"
+		class="overflow-hidden {isCollapsed ? 'h-0 opacity-0' : 'h-auto opacity-100'}"
 	>
 		<div class="p-3 sm:p-4 relative">
 			<slot>

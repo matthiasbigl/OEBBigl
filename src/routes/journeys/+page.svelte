@@ -26,9 +26,7 @@
 
 	export let data: PageData;
 
-	let pageContainer: HTMLElement;
 	let headerRef: HTMLElement;
-	let gridBackground: HTMLElement;
 	let searchContainer: HTMLElement;
 	let statusContainer: HTMLElement;
 	let journeysContainer: HTMLElement;
@@ -97,9 +95,7 @@
 		if (headerRef && searchContainer) {
 			try {
 				pageAnimationController = createPageAnimations({
-					pageContainer,
 					headerRef,
-					gridBackground,
 					searchContainer,
 					stationContainer: statusContainer,
 					departuresContainer: journeysContainer
@@ -153,12 +149,7 @@
 	})}</script>`}
 </svelte:head>
 
-<div bind:this={pageContainer} class="min-h-screen bg-black text-gray-100 font-mono relative overflow-hidden">
-	<div bind:this={gridBackground} class="fixed pointer-events-none" style="top: -100px; left: -100px; right: -100px; bottom: -100px; opacity: 0.15;">
-		<div class="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-black"></div>
-		<div class="absolute inset-0 bg-grid"></div>
-	</div>
-
+<div class="min-h-screen text-gray-100 font-mono relative overflow-hidden">
 	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-20 pointer-events-none"></div>
 	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-20 pointer-events-none" style="animation-delay: 0.5s;"></div>
 	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-20 pointer-events-none" style="animation-delay: 1s;"></div>

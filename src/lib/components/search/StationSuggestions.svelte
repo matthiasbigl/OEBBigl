@@ -113,13 +113,13 @@
 {#if isVisible}
 	<div 
 		bind:this={suggestionsRef}
-		class="absolute top-full left-0 right-0 z-50 mt-1 bg-black/90 border border-gray-600 backdrop-blur-sm max-h-64 shadow-xl rounded-sm flex flex-col"
+		class="absolute top-full left-0 right-0 z-50 mt-1 bg-white/90 dark:bg-black/90 border border-gray-400 dark:border-gray-600 backdrop-blur-sm max-h-64 shadow-xl rounded-sm flex flex-col"
 		role="listbox"
 	>
 		{#if isLoadingState}
 			<!-- Loading State -->
-			<div class="p-3 flex items-center space-x-3 text-gray-400">
-				<div class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+			<div class="p-3 flex items-center space-x-3 text-gray-600 dark:text-gray-400">
+				<div class="w-4 h-4 border-2 border-gray-600 dark:border-gray-400 border-t-transparent rounded-full animate-spin"></div>
 				<span class="text-sm font-mono">Searching stations...</span>
 			</div>
 		{:else}
@@ -128,7 +128,7 @@
 				{#each suggestionsList as station, index (station.id)}
 				<button
 					bind:this={suggestionRefs[index]}
-					class="w-full px-4 py-3 text-left hover:bg-gray-800/50 transition-all duration-300 border-b border-gray-700/50 last:border-b-0 group {activeIndex === index ? 'bg-gray-700/70 transform scale-[1.02]' : ''}"
+					class="w-full px-4 py-3 text-left hover:bg-gray-200/50 dark:hover:bg-gray-800/50 transition-all duration-300 border-b border-gray-300/50 dark:border-gray-700/50 last:border-b-0 group {activeIndex === index ? 'bg-gray-300/70 dark:bg-gray-700/70 transform scale-[1.02]' : ''}"
 					on:click={() => handleSuggestionClick(station)}
 					on:mouseenter={() => handleMouseEnter(index)}
 					role="option"
@@ -140,16 +140,16 @@
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center space-x-2">
 								<!-- Station Icon -->
-								<div class="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0 transition-all duration-300 {activeIndex === index ? 'pulse-element bg-cyan-400 scale-125' : ''}"></div>
+								<div class="w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full flex-shrink-0 transition-all duration-300 {activeIndex === index ? 'pulse-element bg-blue-600 dark:bg-cyan-400 scale-125' : ''}"></div>
 								
 								<!-- Station Name -->
-								<span class="text-gray-100 font-mono text-sm truncate transition-colors duration-300 {activeIndex === index ? 'text-white' : ''}">
+								<span class="text-gray-900 dark:text-gray-100 font-mono text-sm truncate transition-colors duration-300 {activeIndex === index ? 'text-black dark:text-white' : ''}">
 									{station.name}
 								</span>
 							</div>
 							
 							<!-- Station ID (subtle) -->
-							<div class="mt-1 text-xs text-gray-500 font-mono pl-4">
+							<div class="mt-1 text-xs text-gray-500 dark:text-gray-500 font-mono pl-4">
 								ID: {station.id}
 							</div>
 						</div>
@@ -159,7 +159,7 @@
 							<div class="flex items-center space-x-1 ml-3 flex-shrink-0">
 								{#each Object.entries(station.products) as [product, available]}
 									{#if available}
-										<span class="px-1.5 py-0.5 text-xs bg-gray-700/50 text-gray-300 rounded font-mono">
+										<span class="px-1.5 py-0.5 text-xs bg-gray-200/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded font-mono">
 											{product.substring(0, 3).toUpperCase()}
 										</span>
 									{/if}
@@ -169,7 +169,7 @@
 						
 						<!-- Selection Indicator -->
 						{#if activeIndex === index}
-							<div class="ml-3 text-blue-400 flex-shrink-0 animate-pulse">
+							<div class="ml-3 text-blue-600 dark:text-blue-400 flex-shrink-0 animate-pulse">
 								<span class="text-sm transition-transform duration-300 transform scale-110">→</span>
 							</div>
 						{/if}
@@ -181,10 +181,10 @@
 			
 			<!-- Footer with keyboard hint - always visible -->
 			{#if suggestionsList.length > 0}
-				<div class="px-4 py-2 border-t border-gray-700/50 bg-gray-900/30 flex-shrink-0 animate-fadeIn">
-					<div class="text-xs text-gray-500 font-mono flex items-center justify-between">
+				<div class="px-4 py-2 border-t border-gray-300/50 dark:border-gray-700/50 bg-gray-100/30 dark:bg-gray-900/30 flex-shrink-0 animate-fadeIn">
+					<div class="text-xs text-gray-500 dark:text-gray-500 font-mono flex items-center justify-between">
 						<span class="animate-pulse">↑↓ Navigate • Enter Select • Esc Close</span>
-						<span class="text-gray-600">{footerText}</span>
+						<span class="text-gray-600 dark:text-gray-600">{footerText}</span>
 					</div>
 				</div>
 			{/if}

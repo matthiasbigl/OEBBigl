@@ -26,9 +26,7 @@
 	const DATA_LOADING_CLEAR_DELAY = 200; // ms
 	
 	// Component refs
-	let pageContainer: HTMLElement;
 	let headerRef: HTMLElement;
-	let gridBackground: HTMLElement;
 	let searchContainer: HTMLElement;
 	let stationContainer: HTMLElement;
 	let departuresContainer: HTMLElement;
@@ -114,11 +112,9 @@
 		// Initialize animations using our animation system
 		if (browser && headerRef && searchContainer) {
 			pageAnimationController = createPageAnimations({
-				pageContainer,
 				headerRef,
-				gridBackground,
 				searchContainer,
-				stationContainer,
+				stationContainer,			
 				departuresContainer
 			});
 			
@@ -186,20 +182,15 @@
 </svelte:head>
 
 <!-- Main Container with Retro-Futuristic Background -->
-<div bind:this={pageContainer} class="min-h-screen bg-black text-gray-100 font-mono relative overflow-hidden">
-	<!-- Animated Grid Background -->
-	<div bind:this={gridBackground} class="fixed pointer-events-none" style="top: -100px; left: -100px; right: -100px; bottom: -100px; opacity: 0.2;">
-		<div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div>
-		<div class="absolute inset-0 bg-grid"></div>
-	</div>
-	
+<div class="min-h-screen text-gray-900 dark:text-gray-100 font-mono relative overflow-hidden">
+
 	<!-- Scanlines for CRT Effect -->
-	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-20 pointer-events-none"></div>
-	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-20 pointer-events-none" style="animation-delay: 0.5s;"></div>
-	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-20 pointer-events-none" style="animation-delay: 1s;"></div>
+	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 dark:via-gray-400 to-transparent opacity-10 dark:opacity-20 pointer-events-none"></div>
+	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 dark:via-gray-400 to-transparent opacity-10 dark:opacity-20 pointer-events-none" style="animation-delay: 0.5s;"></div>
+	<div class="scanline fixed w-full h-0.5 bg-gradient-to-r from-transparent via-gray-400 dark:via-gray-400 to-transparent opacity-10 dark:opacity-20 pointer-events-none" style="animation-delay: 1s;"></div>
 	
 	<!-- Noise Overlay -->
-	<div class="fixed inset-0 pointer-events-none bg-noise"></div>
+	<div class="fixed inset-0 pointer-events-none bg-noise opacity-30 dark:opacity-100"></div>
 	
 	<div class="relative z-10 min-h-screen flex flex-col">
 		<!-- Skip Navigation Links -->
@@ -228,25 +219,25 @@
 		<header bind:this={headerRef} class="px-4 py-6 sm:px-6 lg:px-8">
 			<div class="max-w-4xl mx-auto">
 				<!-- Top Border Line -->
-				<div class="h-px bg-gradient-to-r from-transparent via-gray-400 to-transparent mb-6"></div>
+				<div class="h-px bg-gradient-to-r from-transparent via-gray-400 dark:via-gray-400 to-transparent mb-6"></div>
 				
 				<!-- Main Title -->
 				<div class="text-center space-y-2">
 					<h1 class="text-2xl sm:text-3xl lg:text-4xl font-title tracking-wider">
 						
-						<span class="mx-2 sm:mx-4 text-white">CYBER STATION</span>
+						<span class="mx-2 sm:mx-4 text-gray-900 dark:text-white">CYBER STATION</span>
 						
 					</h1>
-					<div class="text-xs sm:text-sm text-gray-400 tracking-widest font-mono">
+					<div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 tracking-widest font-mono">
 						REALTIME DEPARTURE MATRIX
 					</div>
-					<div class="text-xs text-gray-600 font-mono">
+					<div class="text-xs text-gray-500 dark:text-gray-600 font-mono">
 						[SYSTEM.ONLINE] → ACCESSING TRANSPORT GRID
 					</div>
 				</div>
 				
 				<!-- Bottom Border Line -->
-				<div class="h-px bg-gradient-to-r from-transparent via-gray-400 to-transparent mt-6"></div>
+				<div class="h-px bg-gradient-to-r from-transparent via-gray-400 dark:via-gray-400 to-transparent mt-6"></div>
 			</div>
 		</header>
 
@@ -285,29 +276,29 @@
 		<!-- Departures Section -->
 		<div id="departures-section" bind:this={departuresContainer} class="flex-1 px-4 py-4 sm:px-6 lg:px-8 pb-8">
 			<div class="max-w-4xl mx-auto">
-			<div class="border border-gray-700 bg-black/50 backdrop-blur-sm min-h-[50vh]">
+			<div class="border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-black/50 backdrop-blur-sm min-h-[50vh]">
 			<!-- Departures Header -->
-			<div class="border-b border-gray-700 px-4 py-3 bg-gray-900/30">
+			<div class="border-b border-gray-300 dark:border-gray-700 px-4 py-3 bg-gray-100/30 dark:bg-gray-900/30">
 			<div class="flex items-center justify-between">
 			<div class="flex items-center space-x-3">
-			<div class="w-2 h-2 bg-blue-400 pulse-element {$isDataLoading ? 'animate-pulse' : ''}"></div>
-			<span class="text-xs sm:text-sm text-gray-400 tracking-wider font-mono">
+			<div class="w-2 h-2 bg-blue-500 dark:bg-blue-400 pulse-element {$isDataLoading ? 'animate-pulse' : ''}"></div>
+			<span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 tracking-wider font-mono">
 			 DEPARTURE.MATRIX
 			</span>
 			{#if $isDataLoading}
-			<div class="h-4 w-px bg-gray-600"></div>
-			<span class="text-xs text-cyan-400 font-mono animate-pulse">
+			<div class="h-4 w-px bg-gray-400 dark:bg-gray-600"></div>
+			<span class="text-xs text-blue-500 dark:text-cyan-400 font-mono animate-pulse">
 			 UPDATING...
 			</span>
 			{:else if isFiltering}
-			<div class="h-4 w-px bg-gray-600"></div>
-			<span class="text-xs text-gray-500 font-mono">
+			<div class="h-4 w-px bg-gray-400 dark:bg-gray-600"></div>
+			<span class="text-xs text-gray-500 dark:text-gray-500 font-mono">
 			 {filteredCount}/{totalDepartures} FILTERED
 			</span>
 			{/if}
 			{#if $hasActiveFilters}
-			<div class="h-4 w-px bg-gray-600"></div>
-			<span class="text-xs text-blue-400 font-mono">
+			<div class="h-4 w-px bg-gray-400 dark:bg-gray-600"></div>
+			<span class="text-xs text-blue-600 dark:text-blue-400 font-mono">
 			 {$totalActiveFilters} FILTER{$totalActiveFilters !== 1 ? 'S' : ''} ACTIVE
 			</span>
 			{/if}
@@ -321,7 +312,7 @@
 			{#if $hasActiveFilters}
 			<button
 			 on:click={filterActions.handleClearFilters}
-			 class="text-xs text-gray-400 hover:text-gray-200 transition-colors duration-200 font-mono"
+			 class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors duration-200 font-mono"
 			 title="Clear all {$totalActiveFilters} active filter{$totalActiveFilters !== 1 ? 's' : ''}"
 			>
 			 CLEAR.ALL.FILTERS
@@ -344,12 +335,12 @@
 
 <!-- Loading Overlay for Station Search -->
 {#if $isSearching}
-	<div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-		<div class="border border-gray-700 bg-black/90 p-8 max-w-sm mx-4">
+	<div class="fixed inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+		<div class="border border-gray-300 dark:border-gray-700 bg-white/90 dark:bg-black/90 p-8 max-w-sm mx-4">
 			<div class="text-center space-y-4">
 				<LoadingSpinner size="lg" color="white" />
-				<div class="text-sm text-gray-300 tracking-wider font-mono">ACCESSING DATABASE</div>
-				<div class="text-xs text-gray-500 font-mono">CONNECTING TO TRANSPORT GRID...</div>
+				<div class="text-sm text-gray-700 dark:text-gray-300 tracking-wider font-mono">ACCESSING DATABASE</div>
+				<div class="text-xs text-gray-500 dark:text-gray-500 font-mono">CONNECTING TO TRANSPORT GRID...</div>
 			</div>
 		</div>
 	</div>
