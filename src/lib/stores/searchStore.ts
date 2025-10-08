@@ -3,6 +3,7 @@ import { goto, invalidateAll } from '$app/navigation';
 import { browser } from '$app/environment';
 import { isDataLoading } from './refreshStore';
 import type { Station } from '$lib/server/hafas';
+import { resolve } from '$app/paths';
 
 // Constants
 const STORAGE_KEY = 'cyber-station-last-visited';
@@ -62,7 +63,7 @@ export const searchActions = {
 			this.clearSuggestions();
 			
 			// Navigate to the new station
-			await goto(`/?station=${encodeURIComponent(trimmedStation)}`, {
+			await goto(`/departures/?station=${encodeURIComponent(trimmedStation)}`, {
 				invalidateAll: true
 			});
 		} catch (error) {
