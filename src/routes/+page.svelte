@@ -195,7 +195,6 @@
 	<meta name="description" content={siteDescription} />
 	<meta name="keywords" content="ÖBB, Austria rail, train departures, journey planner, HAFAS, real-time transit, rail network, Austria transport" />
 	<meta name="author" content="Cyber Station Network" />
-	<html lang="en" />
 	
 	<!-- Open Graph / Facebook -->
 	<meta property="og:type" content="website" />
